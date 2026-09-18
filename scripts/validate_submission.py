@@ -5,7 +5,7 @@ exact column names, exact label strings, one row per held-out file (or per segme
 and ACV car IDs exactly as they appear in the test workbook's headers.
 
     python scripts/validate_submission.py          # report only
-    python scripts/validate_submission.py --zip    # also write predictions/predictions.zip
+    python scripts/validate_submission.py --zip    # also write predictions.zip at the repo root
 """
 import argparse
 import re
@@ -18,6 +18,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 PRED = ROOT / "predictions"
 DATA = ROOT / "data"
+ZIP_PATH = ROOT / "predictions.zip"   # the spec puts it at the top level of the submission
 
 RAIL_LABELS = {"Normal", "Side I", "Side II"}
 DOOR_LABELS = {"Normal", "Abnormal resistance"}
@@ -155,7 +156,7 @@ CHECKS = {
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--zip", action="store_true", help="write predictions/predictions.zip from the valid files")
+    ap.add_argument("--zip", action="store_true", help="write predictions.zip at the repo root from the valid files")
     args = ap.parse_args()
 
     present, failed = [], []
@@ -192,7 +193,7 @@ def main():
     print(f"valid: {present}")
 
     if args.zip:
-        out = PRED / "predictions.zip"
+        out = ZIP_PATH
         with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
             for fname in present:
                 z.write(PRED / fname, arcname=fname)   # flat: no folders inside the zip

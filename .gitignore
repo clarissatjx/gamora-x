@@ -1,5 +1,6 @@
 data/
 *.zip
+!/predictions.zip
 predictions/
 *.pyc
 __pycache__/
@@ -10,4 +11,3 @@ venv/
 *.local.joblib
 .claude/settings.local.json
 dist/
-demo_video.*

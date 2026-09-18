@@ -12,6 +12,16 @@ prediction on screen with the evidence behind it, download the submission CSV.
 | SHM | cumulative fatigue damage from a dynamic-stress series | 1 − MAPE | 0.974 |
 | **Overall** | | mean of four | **0.934** |
 
+## Submission contents (this repository is the submission)
+
+| Spec item | Where |
+|---|---|
+| 1. Demo video | `demo_video.mp4` at the repo root |
+| 2. `predictions.zip` | at the repo root — four `*_predictions.csv`, flat; rebuilt by `scripts/validate_submission.py --zip` |
+| 3. The app | [`app/`](app/) — run from the repo root, see [`app/README.md`](app/README.md); models live in [`subsystems/`](subsystems/) |
+| Optional: write-up | `Optional_Items/write_up.md` |
+| Optional: code and models | `Optional_Items/<Door \| ACV \| Rail Corrugation \| SHM>/{code,model}` — copies of `subsystems/`, rebuilt by `scripts/package_submission.py` |
+
 ## Run the app
 
 ```bash
@@ -57,8 +67,8 @@ python -m subsystems.acv.predict   --input data/ACV/Test               --output 
 python -m subsystems.rail_corrugation.generate_predictions            # -> predictions/rail_predictions.csv
 python -m subsystems.shm.predict   --input data/SHM/Test               --output predictions/shm_predictions.csv
 
-python scripts/validate_submission.py --zip    # checks every file against the scoring rules, writes predictions.zip
-python scripts/package_submission.py --team "<registered team name>"   # assembles dist/<team>/ per the spec
+python scripts/validate_submission.py --zip    # checks every file against the scoring rules, writes predictions.zip at the root
+python scripts/package_submission.py           # rebuilds Optional_Items/ and predictions.zip in place; --dist NAME for a standalone folder
 ```
 
 The validator fails loudly on anything that would score zero (wrong column names or labels,
@@ -72,7 +82,8 @@ subsystems/<name>/        one independent package per subsystem: loader, feature
                           predict (CLI: --input/--output), evaluate, PLAN.md, committed model artifact
 scripts/                  validate_submission.py, package_submission.py
 references/               organisers' problem statement and the four subsystem Info Kits
-predictions/              generated *_predictions.csv and predictions.zip (gitignored)
+Optional_Items/           spec item 4.2: per-subsystem code and model copies, write-up (tracked, generated)
+predictions/              generated *_predictions.csv (gitignored); predictions.zip is at the root (tracked)
 ```
 
 Each `subsystems/<name>/PLAN.md` records the data facts, the method, every experiment run

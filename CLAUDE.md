@@ -20,12 +20,16 @@ python -m subsystems.<name>.evaluate                  # holdout / LOO score + Te
 python -m subsystems.rail_corrugation.verify_inference
 python -m subsystems.<name>.train                     # deterministic retrain (door, shm); rail: train_final
 python -m subsystems.<name>.predict --input <file|dir> --output predictions/<name>_predictions.csv
-python scripts/validate_submission.py --zip           # schema checks on every prediction CSV, writes predictions.zip
-python scripts/package_submission.py --team "<name>"  # assembles dist/<team>/ in the spec's submission layout
+python scripts/validate_submission.py --zip           # schema checks on every prediction CSV, writes predictions.zip at the root
+python scripts/package_submission.py                  # rebuilds Optional_Items/ (tracked copies of subsystems/) and the zip
 ```
 
 Run everything from the repo root. The raw data lives in `data/<Subsystem>/` (gitignored,
-~6.5 GB, mirrors the organisers' `02_Datasets/`); `predictions/` is also gitignored.
+~6.5 GB, mirrors the organisers' `02_Datasets/`); `predictions/*.csv` is gitignored but the
+root `predictions.zip` is tracked. **This repository is the submission**: its root must keep
+the spec's tree (`demo_video.*`, `predictions.zip`, `app/`, `Optional_Items/`), and what the
+judges see is the default branch, so finished work has to reach `main`. After any subsystem
+change, re-run the packager so `Optional_Items/*/code` doesn't drift from `subsystems/`.
 
 ## Architecture
 

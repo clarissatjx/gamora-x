@@ -1,17 +1,21 @@
-"""Assemble the submission folder in the layout the PS3 spec requires.
+"""Lay the submission out in the shape the PS3 spec requires.
 
-    <Team Name>/
-    ├── demo_video.<ext>                 # copied from the repo root if present
-    ├── predictions.zip                  # built by validate_submission (schema-checked)
-    ├── app/                             # everything needed to run the app
+The GitHub repository *is* the submission, so by default this builds in place at the repo
+root, which then reads:
+
+    gamora-x/                            (= <Team Name>/)
+    ├── demo_video.<ext>                 # recorded by hand; checked for presence and size
+    ├── predictions.zip                  # rebuilt through validate_submission.py
+    ├── app/                             # the app; runs from the repo root (see app/README.md)
     └── Optional_Items/
         ├── write_up.<ext>               # copied from the repo root if present
         └── <Door|ACV|Rail Corrugation|SHM>/{code/, model/}
 
-    python scripts/package_submission.py --team "<registered team name>"
+    python scripts/package_submission.py             # build in place (tracked)
+    python scripts/package_submission.py --dist NAME # additionally build a standalone dist/NAME/
 
-Nothing from data/ or the organisers' example submission is copied. Missing optional items
-are listed at the end rather than failing the build.
+Optional_Items/*/code are copies of subsystems/*, so re-run this after any subsystem change.
+Nothing from data/ is ever copied.
 """
 import argparse
 import shutil
@@ -20,7 +24,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DIST = ROOT / "dist"
+GITHUB_FILE_LIMIT_MB = 100
+VIDEO_WARN_MB = 50
 
 SUBSYSTEMS = {                       # spec folder name -> (package dir, model files)
     "Door": ("subsystems/door", ["model.joblib"]),
@@ -29,64 +34,38 @@ SUBSYSTEMS = {                       # spec folder name -> (package dir, model f
                                                          "artifacts/train_features.csv"]),
     "SHM": ("subsystems/shm", ["model.joblib", "artifacts/train_features.csv"]),
 }
-APP_PARTS = ["app", "subsystems", ".streamlit", "requirements.txt", "README.md"]
 IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", "*.local.joblib", ".DS_Store")
 
 
 def copytree(src: Path, dst: Path):
-    shutil.copytree(src, dst, ignore=IGNORE, dirs_exist_ok=True)
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst, ignore=IGNORE)
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--team", required=True, help="exactly as registered — it names the top-level folder")
-    args = ap.parse_args()
-    team = DIST / args.team
-    if team.exists():
-        shutil.rmtree(team)
-    team.mkdir(parents=True)
-    missing = []
-
-    # 2. predictions.zip — always rebuilt through the validator so nothing malformed ships
+def build_zip() -> Path:
     r = subprocess.run([sys.executable, str(ROOT / "scripts/validate_submission.py"), "--zip"],
                        cwd=ROOT, capture_output=True, text=True)
     print(r.stdout.strip())
     if r.returncode != 0:
         print("predictions failed validation — fix them before packaging")
         sys.exit(1)
-    shutil.copy2(ROOT / "predictions/predictions.zip", team / "predictions.zip")
+    return ROOT / "predictions.zip"
 
-    # 3. app — the app plus everything it imports
-    app_dst = team / "app"
-    for part in APP_PARTS:
-        src = ROOT / part
-        (copytree if src.is_dir() else shutil.copy2)(src, app_dst / part)
-    (app_dst / "RUN.md").write_text(
-        "pip install -r requirements.txt\nstreamlit run app/app.py\n\nRun from this folder. "
-        "Models are included; no training or raw data is needed.\n")
 
-    # 1. demo video, optional write-up — copied if they exist at the repo root
-    videos = [p for p in ROOT.glob("demo_video.*") if p.is_file()]
-    if videos:
-        shutil.copy2(videos[0], team / videos[0].name)
-    else:
-        missing.append("demo_video.<mp4|mov> at the repo root (compulsory, <= 3 min)")
-    opt = team / "Optional_Items"
-    opt.mkdir()
-    writeups = [p for p in ROOT.glob("write_up.*") if p.is_file()]
-    if writeups:
-        shutil.copy2(writeups[0], opt / writeups[0].name)
-    else:
-        missing.append("write_up.<md|pdf|docx> at the repo root (optional; the PLAN.md files hold the material)")
-
-    # 4.2 dev code and models, one folder per subsystem with the spec's exact names
+def build_optional_items(dest: Path):
+    opt = dest / "Optional_Items"
     for name, (pkg, models) in SUBSYSTEMS.items():
         src = ROOT / pkg
-        copytree(src, opt / name / "code")
+        code = opt / name / "code"
+        copytree(src, code)
         for m in models:
-            if (opt / name / "code" / m).exists():
-                (opt / name / "code" / m).unlink()
+            f = code / m
+            if f.exists():
+                f.unlink()
         mdir = opt / name / "model"
+        if mdir.exists():
+            shutil.rmtree(mdir)
         mdir.mkdir(parents=True)
         for m in models:
             shutil.copy2(src / m, mdir / Path(m).name)
@@ -95,15 +74,61 @@ def main():
                 "The ACV ranker has no trained artifact: it is a parameter-free physics rule "
                 "(cabin temperature minus cooling setpoint) blended with a fixed-weight heuristic. "
                 "See code/PLAN.md.\n")
+    writeups = [p for p in ROOT.glob("write_up.*") if p.is_file()]
+    if writeups:
+        shutil.copy2(writeups[0], opt / writeups[0].name)
+    return bool(writeups)
 
-    print(f"\nbuilt {team.relative_to(ROOT)}/")
-    for p in sorted(team.rglob("*")):
-        if p.is_file() and "code" not in p.relative_to(team).parts:
-            print(f"  {p.relative_to(team)}")
-    if missing:
-        print("\nstill needed before upload:")
-        for m in missing:
-            print(f"  - {m}")
+
+def check_video():
+    videos = [p for p in ROOT.glob("demo_video.*") if p.is_file()]
+    if not videos:
+        return None, None
+    mb = videos[0].stat().st_size / 1e6
+    return videos[0], mb
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dist", metavar="TEAM", help="also build a standalone dist/TEAM/ folder for a zip upload")
+    args = ap.parse_args()
+
+    zip_path = build_zip()
+    has_writeup = build_optional_items(ROOT)
+    video, mb = check_video()
+
+    print("\nrepo root now carries the spec's submission tree:")
+    for p in ["demo_video", "predictions.zip", "app/", "Optional_Items/"]:
+        ok = (video is not None) if p == "demo_video" else (ROOT / p.rstrip("/")).exists()
+        print(f"  [{'x' if ok else ' '}] {p}")
+    todo = []
+    if video is None:
+        todo.append("record demo_video.<mp4|mov> (<= 3 min) and put it at the repo root")
+    elif mb > GITHUB_FILE_LIMIT_MB:
+        todo.append(f"demo_video is {mb:.0f} MB — GitHub rejects files over {GITHUB_FILE_LIMIT_MB} MB; re-encode smaller")
+    elif mb > VIDEO_WARN_MB:
+        todo.append(f"demo_video is {mb:.0f} MB — fine for GitHub but consider re-encoding under {VIDEO_WARN_MB} MB")
+    if not has_writeup:
+        todo.append("write write_up.<md|pdf> at the repo root (optional; the PLAN.md files hold the material)")
+    todo.append("commit and push so the default branch shows this tree")
+    print("\nstill to do:")
+    for t in todo:
+        print(f"  - {t}")
+
+    if args.dist:
+        team = ROOT / "dist" / args.dist
+        if team.exists():
+            shutil.rmtree(team)
+        team.mkdir(parents=True)
+        shutil.copy2(zip_path, team / "predictions.zip")
+        app_dst = team / "app"
+        for part in ["app", "subsystems", ".streamlit", "requirements.txt", "README.md"]:
+            src = ROOT / part
+            (copytree if src.is_dir() else shutil.copy2)(src, app_dst / part)
+        copytree(ROOT / "Optional_Items", team / "Optional_Items")
+        if video is not None:
+            shutil.copy2(video, team / video.name)
+        print(f"\nalso built dist/{args.dist}/ for a folder or zip upload")
 
 
 if __name__ == "__main__":
