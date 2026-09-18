@@ -8,6 +8,7 @@ import ReliabilityPanel from '../components/ReliabilityPanel';
 import Verdict from '../components/Verdict';
 import ChannelChart from '../components/ChannelChart';
 import { COLORS } from '../theme';
+import { downloadCsv } from '../utils/csv';
 
 const CLASS_COLOR = { Normal: COLORS.green, 'Side I': COLORS.accent, 'Side II': COLORS.amber };
 
@@ -151,7 +152,16 @@ export default function RailPage() {
             footer="only file_id and prediction are submitted; confidence and speed are informational."
           />
 
-          <button className="gx-btn" onClick={() => setResult(null)}>Reset</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              className="gx-btn gx-btn-accent"
+              onClick={() => downloadCsv('rail_predictions.csv', ['file_id', 'prediction'],
+                [[result.file_id, result.csv_prediction]])}
+            >
+              ⬇ Download CSV
+            </button>
+            <button className="gx-btn" onClick={() => setResult(null)}>Reset</button>
+          </div>
         </>
       )}
     </div>
