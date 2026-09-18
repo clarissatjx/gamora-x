@@ -35,7 +35,14 @@ STATIONARY_REASON = (
 
 
 def load_artifact(path=ARTIFACT_PATH):
-    """Load (and cache) the trained model, so repeated calls don't reload it from disk."""
+    """Load (and cache) the trained model, so repeated calls don't reload it from disk.
+
+    The committed artifact was pickled under numpy 2; on numpy 1.x it fails to unpickle
+    (`PCG64 is not a known BitGenerator`). Training is deterministic and takes ~5 s from the
+    cached feature table, and a local retrain reproduces the submitted predictions exactly
+    (verified on all 68 test files), so fall back to that, saved beside the artifact as an
+    untracked *.local.joblib.
+    """
     global _ARTIFACT
     if _ARTIFACT is None:
         if not path.exists():
@@ -43,7 +50,12 @@ def load_artifact(path=ARTIFACT_PATH):
                 f"No trained model at {path}. Run: "
                 "python -m subsystems.rail_corrugation.train_final"
             )
-        _ARTIFACT = joblib.load(path)
+        local = path.with_suffix(".local.joblib")
+        try:
+            _ARTIFACT = joblib.load(local if local.exists() else path)
+        except Exception:  # noqa: BLE001 - cross-version pickle; retrain rather than fail
+            from .train_final import train_and_save
+            _ARTIFACT, _ = train_and_save(path=local)
     return _ARTIFACT
 
 

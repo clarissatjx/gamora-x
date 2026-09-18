@@ -4,9 +4,13 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Data actually extracted with an extra nested `data/` level (data/data/Rail_Corrugation/...),
-# not the data/Rail_Corrugation/ layout CLAUDE.md describes -- confirmed by inspecting the repo.
-DATA_DIR = REPO_ROOT / "data" / "data" / "Rail_Corrugation"
+# The shared layout is data/Rail_Corrugation/ (CLAUDE.md); one local unzip produced an extra
+# nested data/data/ level, so accept whichever exists rather than hard-coding either.
+_CANDIDATE_DIRS = (
+    REPO_ROOT / "data" / "Rail_Corrugation",
+    REPO_ROOT / "data" / "data" / "Rail_Corrugation",
+)
+DATA_DIR = next((p for p in _CANDIDATE_DIRS if p.exists()), _CANDIDATE_DIRS[0])
 TRAIN_DIR = DATA_DIR / "Train"
 TEST_DIR = DATA_DIR / "Test"
 TRAIN_LABELS_PATH = DATA_DIR / "Train_Labels.csv"

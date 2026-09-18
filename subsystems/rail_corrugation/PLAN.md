@@ -640,6 +640,58 @@ judgment call.
 
 ---
 
+## Phase 9 — Independent review after the held-out score (0.888)
+
+Reviewed on the merged branch by the Door/SHM owner, using the same paired repeated-CV harness
+(5 repeats × 5-fold, identical folds per repeat, pooled macro F1, ±0.03 noise floor). Every
+hypothesis below was written down before it was run.
+
+**Hyperparameters — never tuned before, now closed from both sides.** The default
+`min_samples_leaf=20` exceeds the whole Side I class (14), so *smaller* leaves were expected to
+help. They hurt, monotonically; and *larger* leaves hurt more. The default is a sharp optimum.
+
+| config | macro F1 | Side I F1 | gain | wins/5 |
+|---|---|---|---|---|
+| **baseline (defaults)** | **0.806** | **0.570** | — | — |
+| msl=10 / 5 / 3 | 0.753 / 0.746 / 0.758 | 0.47 / 0.44 / 0.49 | −0.05 to −0.06 | ≤1 |
+| msl=30 / 40 | 0.726 / 0.662 | 0.43 / 0.33 | −0.08 / −0.14 | 0 |
+| leaves=15 / 7, it=50 / 200, lr=.05 | 0.773–0.806 | 0.49–0.57 | −0.03 to 0.00 | ≤1 |
+| l2=1.0 | 0.815 | 0.587 | +0.009 | 3 |
+
+**Two more feature ideas — both rejected.** (1) A *single* pre-registered wavelength band
+(0.12–0.25 m, relative power, per-side means + asymmetry diff/log-ratio: 4 features), the
+middle ground between the headline feature and the 120-column Phase 8 set. (2) Per-axle
+left/right log-ratios of channel std (positions 1/2, 3/4, 5/6, 7/8 share an axle, so the ratio
+cancels per-car sensor scale): 6 features.
+
+| variant | macro F1 | Side I F1 | gain | wins/5 |
+|---|---|---|---|---|
+| + band (4) | 0.797 | 0.550 | −0.009 | 0 |
+| + axle (6) | 0.797 | 0.547 | −0.009 | 0 |
+| + both (10) | 0.797 | 0.549 | −0.009 | 2 |
+
+Univariate Side I AUC: band asymmetry 0.750 (vs the exploratory 0.813, which was best-of-six),
+per-axle max 0.747, headline `asym_diff_vib_rms_mean` 0.715. Better single features, no
+multivariate gain. The code was reverted per the Phase 8 convention.
+
+**Conclusion, now supported seven independent ways:** the 239-feature default-hyperparameter
+model is a local optimum for this dataset; the Side I ceiling is the 14 training examples. The
+0.888 test score is above the 0.806 ± 0.03 CV estimate — a favourable draw on ~5 Side I test
+files, where each file is ≈ ±0.04 macro F1 — and the write-up should present capability as
+≈ 0.80, not 0.89.
+
+**Bugs found (none affect the submitted score):**
+- `artifacts/rail_model.joblib` is a numpy-2 pickle and fails to load on numpy 1.x. A local
+  retrain from the cached feature table reproduces all 68 submitted predictions exactly, so
+  `predict.py` now falls back to that (saved as an untracked `*.local.joblib`).
+- `config.py` hard-coded `data/data/…`; it now accepts either layout.
+- Not wired into the shared app (out of scope here by design); `predict_rail_detailed` is
+  ready for it.
+
+**Fragile test calls worth knowing about:** `Test14` (Side II at 18.8 m/s with asymmetry
+−0.016, outside the high-speed Side II range) and `Test56` (Normal at 18.3 m/s, inside the
+high-speed Side I range). Neither is resolvable without labels.
+
 ## Judgment calls log (carried into the write-up)
 
 - [x] **Speed derivation: 1 tooth = 1 rising edge** (`revolutions = rising_edges / 90`).
