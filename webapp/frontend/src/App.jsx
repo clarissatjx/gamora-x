@@ -3,6 +3,7 @@ import AcvPage from './pages/AcvPage';
 import DoorPage from './pages/DoorPage';
 import RailPage from './pages/RailPage';
 import ShmPage from './pages/ShmPage';
+import StartPage from './pages/StartPage';
 import Term from './components/Term';
 
 // Scores are the same held-out figures shown throughout the app (README, Streamlit sidebar) —
@@ -14,10 +15,10 @@ const NAV = [
   { key: 'shm', label: 'SHM', tag: '1−MAPE', score: '0.974', csv: 'shm_predictions.csv' },
 ];
 
-const PAGES = { door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage };
+const PAGES = { start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage };
 
 export default function App() {
-  const [view, setView] = useState('rail');
+  const [view, setView] = useState('start');
   const Page = PAGES[view];
   const current = NAV.find((n) => n.key === view);
 
@@ -35,6 +36,18 @@ export default function App() {
           </div>
         </div>
 
+        <button
+          onClick={() => setView('start')}
+          className={`gx-nav-btn${view === 'start' ? ' active' : ''}`}
+        >
+          <span className="gx-nav-dot" />
+          <span className="gx-nav-label">Get started</span>
+        </button>
+
+        <div style={{ margin: '10px 2px 6px', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gx-dim)' }}>
+          Subsystems
+        </div>
+
         {NAV.map((n) => (
           <button
             key={n.key}
@@ -47,16 +60,18 @@ export default function App() {
           </button>
         ))}
 
-        <div className="gx-side-meta">
-          <div className="gx-side-meta-row">
-            <span className="k">held-out score</span>
-            <span className="v" style={{ color: 'var(--gx-accent)' }}>{current.score}</span>
+        {current && (
+          <div className="gx-side-meta">
+            <div className="gx-side-meta-row">
+              <span className="k">held-out score</span>
+              <span className="v" style={{ color: 'var(--gx-accent)' }}>{current.score}</span>
+            </div>
+            <div className="gx-side-meta-row">
+              <span className="k">submission file</span>
+              <span className="v">{current.csv}</span>
+            </div>
           </div>
-          <div className="gx-side-meta-row">
-            <span className="k">submission file</span>
-            <span className="v">{current.csv}</span>
-          </div>
-        </div>
+        )}
       </div>
 
       <div style={{ flex: 1, padding: '24px 32px 56px', maxWidth: 1148 }}>
@@ -67,7 +82,7 @@ export default function App() {
             4 of 4 models loaded
           </div>
         </div>
-        <Page />
+        <Page onOpen={setView} />
       </div>
     </div>
   );
