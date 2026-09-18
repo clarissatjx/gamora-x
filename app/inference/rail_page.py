@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import session
 import theme
 from subsystems.rail_corrugation import config
 from subsystems.rail_corrugation.features import _channel_column_indices, load_raw_file
@@ -101,6 +102,7 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
         theme.banner("Waiting for a recording. Positions 1/3/5/7 sit on the Side I rail and 2/4/6/8 on Side II; "
                      "corrugation shows up as a vibration signature on one side only. A stationary train is "
                      "reported Normal by rule — it cannot generate the excitation.", icon="⬆")
+        session.sample_button("rail")
         return
 
     results, failures = [], []
@@ -115,9 +117,6 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
     if not results:
         return
 
-    r0 = results[0]
-    pred = r0["prediction"]
-    conf = "rule" if r0["stationary_rule_applied"] else f"{r0['probabilities'][pred]:.0%}"
     preds = pd.DataFrame({"file_id": [r["file_id"] for r in results], "prediction": [r["prediction"] for r in results]})
 
     if batch:
@@ -125,7 +124,10 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
         theme.banner(f"{len(results)} of {len(uploads)} files classified — " +
                      ", ".join(f"{k}: {v}" for k, v in mix.items()) + ".",
                      icon="✓" if not failures else "!", color=theme.ACCENT if not failures else theme.AMBER)
-    else:
+    r0 = results[session.inspect_picker("rail", [r["file_id"] for r in results]) if batch else 0]
+    pred = r0["prediction"]
+    conf = "rule" if r0["stationary_rule_applied"] else f"{r0['probabilities'][pred]:.0%}"
+    if not batch:
         theme.banner(f"{r0['file_id']} accepted — 129 columns, 10 kHz, 1.0 s window. "
                      + (r0["explanation"] if r0["stationary_rule_applied"] else f"Classified {pred} with {conf} confidence."),
                      color=CLASS_COLOR[pred] if pred != "Normal" else theme.ACCENT, icon="!" if pred != "Normal" else "✓")
@@ -166,9 +168,11 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
              f"{r['speed_mps'] * 3.6:.0f}"] for r in results]
     theme.table(["file_id", "prediction", "confidence", "speed km/h"], rows, f"{meta['csv']} · {len(rows)} rows",
                 "file_id, prediction", footer="only file_id and prediction are submitted; confidence and speed are informational.")
+    csv_bytes = preds.to_csv(index=False).encode()
+    session.record("rail", meta["csv"], csv_bytes, len(preds), preds.file_id)
     dl, rs, _ = st.columns([1.1, 0.6, 3])
     with dl:
-        st.download_button(f"⬇  Download {meta['csv']}", preds.to_csv(index=False).encode(),
+        st.download_button(f"⬇  Download {meta['csv']}", csv_bytes,
                            file_name=meta["csv"], mime="text/csv", use_container_width=True)
     if rs.button("Reset", use_container_width=True, key="rail_reset"):
         st.session_state.pop("rail_files", None)

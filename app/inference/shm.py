@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import session
 import theme
 from subsystems.shm.loader import load_series
 from subsystems.shm.predict import analyse, load_model
@@ -142,6 +143,7 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
             "cumulative-damage number — 1.0 would mean the fatigue life is used up.",
             icon="⬆",
         )
+        session.sample_button("shm")
         return
 
     b = bundle()
@@ -161,14 +163,14 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
     if not results:
         return
 
-    name0, x0, r0 = results[0]
     preds = pd.DataFrame({"file_id": [n for n, _, _ in results],
                           "prediction": [r["damage"] for _, _, r in results]})
     if batch:
         theme.banner(f"{len(results)} of {len(uploads)} files parsed successfully — damage "
                      f"{preds.prediction.min():.4f} to {preds.prediction.max():.4f}.",
                      icon="✓" if not failures else "!", color=theme.ACCENT if not failures else theme.AMBER)
-    else:
+    name0, x0, r0 = results[session.inspect_picker("shm", [n for n, _, _ in results]) if batch else 0]
+    if not batch:
         theme.banner(f"{name0} accepted — {len(x0):,} samples, {r0['n_reversals']:,} reversals, "
                      f"{r0['n_cycles']:,.0f} rainflow cycles. Damage estimated.")
 
@@ -189,7 +191,7 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
         theme.axis("0", f"{len(x0):,} samples")
         st.markdown(f'<div style="font-size:12.5px;color:{theme.FAINT};margin-top:8px">Amber rings mark '
                     f'the eight largest excursions from the mean — with an S-N exponent of 5, a handful '
-                    f'of such cycles carries most of the damage.{" Showing the first uploaded file." if batch else ""}'
+                    f'of such cycles carries most of the damage.{f" Showing {name0}." if batch else ""}'
                     f'</div>', unsafe_allow_html=True)
 
     if evidence:
@@ -210,9 +212,11 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
     theme.table(["file_id", "prediction"], rows, f"{meta['csv']} · {len(rows)} rows",
                 "file_id, prediction",
                 footer="prediction is the cumulative fatigue damage; 1.0 = fatigue life consumed.")
+    csv_bytes = preds.to_csv(index=False).encode()
+    session.record("shm", meta["csv"], csv_bytes, len(preds), preds.file_id)
     dl, rs, _ = st.columns([1.1, 0.6, 3])
     with dl:
-        st.download_button(f"⬇  Download {meta['csv']}", preds.to_csv(index=False).encode(),
+        st.download_button(f"⬇  Download {meta['csv']}", csv_bytes,
                            file_name=meta["csv"], mime="text/csv", use_container_width=True)
     if rs.button("Reset", use_container_width=True, key="shm_reset"):
         st.session_state.pop("shm_files", None)

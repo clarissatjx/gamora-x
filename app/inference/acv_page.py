@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import session
 import theme
 from inference.acv import DEFAULT_METHOD
 from subsystems.acv.features import extract_features, load_case
@@ -109,6 +110,7 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
         theme.banner("Waiting for a workbook. Each car is compared with its 7 neighbours on the same train: a "
                      "unit losing refrigerant cannot pull its cabin down to the cooling setpoint, and that gap "
                      "is what the ranking is built on.", icon="⬆")
+        session.sample_button("acv")
         return
 
     results, failures = [], []
@@ -125,16 +127,16 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
     if not results:
         return
 
-    r0 = results[0]
-    top, runner = r0["ranked"][0], r0["ranked"][1]
-    margin = float(r0["scores"].iloc[0] - r0["scores"].iloc[1])
     preds = pd.DataFrame({"file_id": [r["file_id"] for r in results],
                           "ranked_cars": ["|".join(r["ranked"]) for r in results]})
 
     if batch:
         theme.banner(f"{len(results)} of {len(uploads)} workbooks ranked.", icon="✓" if not failures else "!",
                      color=theme.ACCENT if not failures else theme.AMBER)
-    else:
+    r0 = results[session.inspect_picker("acv", [r["file_id"] for r in results]) if batch else 0]
+    top, runner = r0["ranked"][0], r0["ranked"][1]
+    margin = float(r0["scores"].iloc[0] - r0["scores"].iloc[1])
+    if not batch:
         theme.banner(f"{r0['file_id']} accepted — {len(r0['ranked'])} cars, {r0['n_rows']:,} timestamps over "
                      f"{r0['hours']:.1f} h. Ranking complete: car {top} most likely faulty.")
 
@@ -186,9 +188,11 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
              theme.pill(f"car {r['ranked'][0]}", theme.RED)] for r in results]
     theme.table(["file_id", "ranked_cars", "top pick"], rows, f"{meta['csv']} · {len(rows)} rows",
                 "file_id, ranked_cars", footer="ranked_cars uses each car's ID exactly as it appears in the workbook headers.")
+    csv_bytes = preds.to_csv(index=False).encode()
+    session.record("acv", meta["csv"], csv_bytes, len(preds), preds.file_id)
     dl, rs, _ = st.columns([1.1, 0.6, 3])
     with dl:
-        st.download_button(f"⬇  Download {meta['csv']}", preds.to_csv(index=False).encode(),
+        st.download_button(f"⬇  Download {meta['csv']}", csv_bytes,
                            file_name=meta["csv"], mime="text/csv", use_container_width=True)
     if rs.button("Reset", use_container_width=True, key="acv_reset"):
         st.session_state.pop("acv_files", None)

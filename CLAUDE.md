@@ -48,6 +48,12 @@ change, re-run the packager so `Optional_Items/*/code` doesn't drift from `subsy
   variables, so charts take concrete hex from `theme.chart_colors()`.
 - `app/inference/acv.py` is a Streamlit-free inference module (the ACV CLI imports it); the
   page is `acv_page.py`. Keep that split.
+- `app/session.py` holds what the pages share: the bundled samples in `app/samples/` (one
+  held-out file per subsystem, big ones gzipped and served under their original name so
+  `file_id` matches the submitted CSV), the `results` registry each page writes its CSV into
+  (the overview zips them as a submission-shaped `predictions.zip`), and the batch
+  `inspect_picker`. Deep links are `?view=<key>`; `app.py` syncs `st.query_params` with
+  `session_state.view` and only lets the URL win when it differs from what the app last wrote.
 
 ## Gotchas that have bitten
 

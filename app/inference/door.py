@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import session
 import theme
 from subsystems.door.loader import CURRENT_COL, POSITION_COL, TIME_COL, load_stream
 from subsystems.door.predict import load_model, run, to_output
@@ -150,9 +151,10 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
             "below, ready to download as a CSV.",
             icon="⬆", color=theme.ACCENT,
         )
+        session.sample_button("door")
         return
 
-    frames, first, failures = [], None, []
+    parsed, failures = [], []
     for name, data in uploads:
         try:
             df, segs, out = process(io.BytesIO(data))
@@ -162,20 +164,17 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
         except Exception as e:  # noqa: BLE001
             failures.append((name, f"could not read this file: {e}"))
             continue
-        frames.append(out)
-        if first is None:
-            first = (name, df, segs, out)
+        parsed.append((name, df, segs, out))
 
     for name, msg in failures:
         st.error(f"{name} — {msg}")
-    if first is None:
+    if not parsed:
         return
 
-    name0, df0, segs0, out0 = first
+    frames = [p[3] for p in parsed]
     combined = pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
     combined.attrs["n_files"] = len(frames)
     n_abn = int((combined.prediction == ABNORMAL).sum())
-    dur = len(df0) * SAMPLE_SECONDS
 
     if batch:
         theme.banner(
@@ -184,7 +183,9 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
             color=theme.ACCENT if not failures else theme.AMBER,
             icon="✓" if not failures else "!",
         )
-    else:
+    name0, df0, segs0, out0 = parsed[session.inspect_picker("door", [p[0] for p in parsed]) if batch else 0]
+    dur = len(df0) * SAMPLE_SECONDS
+    if not batch:
         theme.banner(
             f"{name0} accepted — {len(df0):,} rows, {df0.shape[1] - 1} columns, "
             f"{int(dur // 60)} min {dur % 60:04.1f} s of stream. {len(out0)} cycles detected.",
@@ -209,7 +210,7 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
             f'<div style="font-size:12.5px;color:{theme.FAINT};margin-top:8px">'
             f'Shaded bands are detected cycles, cyan is motor current, the dashed grey line is '
             f'door leaf position. Idle gaps between cycles are removed.'
-            f'{" Showing the first uploaded file." if batch else ""}</div>',
+            f'{f" Showing {name0}." if batch else ""}</div>',
             unsafe_allow_html=True,
         )
 
@@ -219,12 +220,12 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
             theme.evidence(*ev)
 
     _table(combined, batch)
+    csv_bytes = combined[["start_time", "end_time", "prediction", "confidence"]].to_csv(index=False).encode()
+    session.record("door", meta["csv"], csv_bytes, len(combined), [p[0] for p in parsed])
     dl, rs, _ = st.columns([1.1, 0.6, 3])
     with dl:
         st.download_button(
-            f"⬇  Download {meta['csv']}",
-            combined[["start_time", "end_time", "prediction", "confidence"]]
-            .to_csv(index=False).encode(),
+            f"⬇  Download {meta['csv']}", csv_bytes,
             file_name=meta["csv"], mime="text/csv", use_container_width=True,
         )
     if rs.button("Reset", use_container_width=True):

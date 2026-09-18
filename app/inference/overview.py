@@ -1,5 +1,6 @@
 import streamlit as st
 
+import session
 import theme
 
 TASKS = {
@@ -69,7 +70,10 @@ def render(meta: dict, subs: dict):
         f'<div style="font-size:13.5px;color:{theme.MUTED};margin:-4px 0 18px">'
         f'Detection is by content: an .xlsx is ACV, a header with <span style="font-family:{theme.MONO}">Motor '
         f'current</span> is Door, 129 columns starting with the speed pulse is Rail, one headerless column is SHM. '
-        f'Or pick a subsystem below.</div>', unsafe_allow_html=True)
+        f'Or pick a subsystem below — each card can also load a bundled sample file.</div>',
+        unsafe_allow_html=True)
+
+    session.overview_panel()
 
     cols = st.columns(4, gap="small")
     for col, key in zip(cols, ["door", "acv", "rail", "shm"]):
@@ -87,6 +91,10 @@ def render(meta: dict, subs: dict):
                 f'<div class="gx-card-out">{INPUTS[key]} → {s["csv"]}</div>{score_line}</div>',
                 unsafe_allow_html=True,
             )
-            if st.button("Open", key=f"card_{key}", use_container_width=True):
+            b1, b2 = st.columns(2, gap="small")
+            if b1.button("Open", key=f"card_{key}", use_container_width=True):
                 st.session_state.view = key
                 st.rerun()
+            if b2.button("Sample", key=f"sample_{key}", use_container_width=True,
+                         help=f"Load {session.sample_name(key)}: {session.SAMPLES[key][1]}"):
+                session.use_sample(key)

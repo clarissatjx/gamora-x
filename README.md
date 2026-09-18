@@ -32,14 +32,20 @@ streamlit run app/app.py
 The app opens on an overview. Drop any raw file there — it identifies the subsystem from the
 file's contents and routes to that page — or pick a subsystem in the sidebar. Every page follows
 the same flow: upload → banner → metrics → charts and evidence → results table → download.
-Batch mode accepts several files at once. Uploads persist while you navigate. Try:
+No data to hand? Every page and every overview card has a **Sample** button that loads a
+bundled held-out file (`app/samples/`):
 
 ```
-data/Door/Test.csv                    38 cycles, 8 flagged abnormal
-data/ACV/Test/acv_test_case.xlsx      car 01 ranked most likely faulty
-data/Rail_Corrugation/Test/Test26.csv Side II, 100 %
-data/SHM/Test/test02.csv              damage 0.8276
+Test.csv             Door   38 cycles, 8 flagged abnormal
+acv_test_case.xlsx   ACV    car 01 ranked most likely faulty
+Test33.csv           Rail   Side I, 100 %, 46 km/h
+test02.csv           SHM    damage 0.8276
 ```
+
+Batch mode accepts several files at once and lets you choose which one the charts follow.
+Uploads persist while you navigate; `?view=rail` (or `door`, `acv`, `shm`) deep-links to a page.
+Once anything has been scored, the overview offers the session's results as one
+submission-shaped `predictions.zip`.
 
 The raw datasets are not in the repo (`data/` is gitignored); mirror the organisers'
 `02_Datasets/` layout into `data/`.

@@ -66,6 +66,12 @@ SUBS = {
 N_LIVE = sum(1 for k, s in SUBS.items() if s["live"] and k != "overview")
 PAGES = {"door": door.render, "shm": shm.render, "acv": acv_page.render, "rail": rail_page.render}
 
+# Deep links: ?view=rail opens that page directly, and the URL follows in-app navigation so
+# the browser back button and shared links both work. A query value only wins when it differs
+# from what this app last wrote — i.e. the person changed the URL, not the sidebar.
+url_view = st.query_params.get("view")
+if url_view in SUBS and url_view != st.session_state.get("_url_view"):
+    st.session_state.view = url_view
 st.session_state.setdefault("view", "overview")
 st.session_state.setdefault("batch", False)
 st.session_state.setdefault("evidence", True)
@@ -106,6 +112,10 @@ with st.sidebar:
         st.rerun()
 
     theme.sidebar_meta(SUBS[st.session_state.view]["meta"])
+
+if st.query_params.get("view") != st.session_state.view:
+    st.query_params["view"] = st.session_state.view
+st.session_state["_url_view"] = st.session_state.view
 
 meta = SUBS[st.session_state.view]
 theme.topbar("batch" if st.session_state.batch and meta["live"] else meta["crumb"], N_LIVE, 4)
