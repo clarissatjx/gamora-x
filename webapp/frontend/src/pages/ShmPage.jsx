@@ -6,6 +6,7 @@ import HistogramChart from '../components/HistogramChart';
 import Metrics from '../components/Metrics';
 import Panel from '../components/Panel';
 import ReliabilityPanel from '../components/ReliabilityPanel';
+import Spinner from '../components/Spinner';
 import StressChart from '../components/StressChart';
 import Verdict from '../components/Verdict';
 import { downloadCsv } from '../utils/csv';
@@ -69,14 +70,15 @@ export default function ShmPage() {
             sub="One measurement point's stress time series."
             accept=".csv"
             onFile={runFile}
+            disabled={loading}
           />
           <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
-            {loading ? 'Loading…' : 'Try the sample — test02.csv'}
+            {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — test02.csv'}
           </button>
         </>
       )}
 
-      {error && <div className="gx-alert">{error}</div>}
+      {error && <div className="gx-alert"><span className="gx-alert-icon">✕</span>{error}</div>}
 
       {result && (
         <>
@@ -85,10 +87,13 @@ export default function ShmPage() {
               result.n_reversals.toLocaleString()} reversals, ${result.n_cycles.toFixed(0)} rainflow cycles. Damage estimated.`}
           />
           {result.implausible && (
-            <div className="gx-alert" style={{ borderColor: 'var(--gx-amber)' }}>
-              {result.file_id}&rsquo;s stress values (peak {result.peak_abs.toFixed(0)}) fall well
-              outside the range of our training files (roughly ±20 to ±55). This may not be an SHM
-              stress segment — the damage number below could be meaningless for this file.
+            <div className="gx-alert gx-alert-amber">
+              <span className="gx-alert-icon">⚠</span>
+              <span>
+                {result.file_id}&rsquo;s stress values (peak {result.peak_abs.toFixed(0)}) fall well
+                outside the range of our training files (roughly ±20 to ±55). This may not be an SHM
+                stress segment — the damage number below could be meaningless for this file.
+              </span>
             </div>
           )}
 

@@ -8,6 +8,7 @@ import ReliabilityPanel from '../components/ReliabilityPanel';
 import Verdict from '../components/Verdict';
 import DoorChart from '../components/DoorChart';
 import Pill from '../components/Pill';
+import Spinner from '../components/Spinner';
 import { COLORS } from '../theme';
 import { downloadCsv } from '../utils/csv';
 
@@ -74,14 +75,15 @@ export default function DoorPage() {
             sub="A continuous recording containing many door open/close cycles back to back."
             accept=".csv"
             onFile={runFile}
+            disabled={loading}
           />
           <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
-            {loading ? 'Loading…' : 'Try the sample — Test.csv'}
+            {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — Test.csv'}
           </button>
         </>
       )}
 
-      {error && <div className="gx-alert">{error}</div>}
+      {error && <div className="gx-alert"><span className="gx-alert-icon">✕</span>{error}</div>}
 
       {result && (
         <>

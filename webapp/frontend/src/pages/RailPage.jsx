@@ -7,6 +7,7 @@ import Panel from '../components/Panel';
 import ReliabilityPanel from '../components/ReliabilityPanel';
 import Verdict from '../components/Verdict';
 import ChannelChart from '../components/ChannelChart';
+import Spinner from '../components/Spinner';
 import { COLORS } from '../theme';
 import { downloadCsv } from '../utils/csv';
 
@@ -80,14 +81,15 @@ export default function RailPage() {
             sub="One second at 10 kHz: speed pulse plus 64 axle boxes × vibration and shock."
             accept=".csv"
             onFile={runFile}
+            disabled={loading}
           />
           <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
-            {loading ? 'Loading…' : 'Try the sample — Test33.csv'}
+            {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — Test33.csv'}
           </button>
         </>
       )}
 
-      {error && <div className="gx-alert">{error}</div>}
+      {error && <div className="gx-alert"><span className="gx-alert-icon">✕</span>{error}</div>}
 
       {result && (
         <>

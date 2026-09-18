@@ -8,6 +8,7 @@ import Panel from '../components/Panel';
 import Pill from '../components/Pill';
 import RankingBars from '../components/RankingBars';
 import ReliabilityPanel from '../components/ReliabilityPanel';
+import Spinner from '../components/Spinner';
 import Verdict from '../components/Verdict';
 import { COLORS } from '../theme';
 import { downloadCsv } from '../utils/csv';
@@ -71,14 +72,15 @@ export default function AcvPage() {
             sub="One train's ACV telemetry for all 8 cars, sampled every 30 s."
             accept=".xlsx"
             onFile={runFile}
+            disabled={loading}
           />
           <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
-            {loading ? 'Loading…' : 'Try the sample — acv_test_case.xlsx'}
+            {loading && <Spinner />} {loading ? 'Parsing workbook…' : 'Try the sample — acv_test_case.xlsx'}
           </button>
         </>
       )}
 
-      {error && <div className="gx-alert">{error}</div>}
+      {error && <div className="gx-alert"><span className="gx-alert-icon">✕</span>{error}</div>}
 
       {result && (
         <>
