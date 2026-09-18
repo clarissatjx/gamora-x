@@ -176,15 +176,79 @@ files excluded per the Phase 2 decision), with:
   steadying the per-fold stationary count — is achieved outright by exclusion.)
 - **Duplicate grouping**: `Train107`/`Train115` forced into the same fold.
 
-Nothing trained yet.
+**Refinement made while building:** rather than forcing `Train107`/`Train115` into the
+same fold, I **dropped `Train115`**. A byte-identical duplicate carries no additional
+information, and keeping it would double-weight that one Normal sample in training. Fewer
+moving parts, and plain `StratifiedKFold` then gives exact stratification rather than the
+approximate balancing of `StratifiedGroupKFold`.
+
+### Result (DONE, pending your check)
+
+File: `split.py` — exports `load_training_frame()` and `make_folds()`, which Phases 4–5
+import so the exclusions can't silently diverge between scripts.
+
+```
+All train rows:            272
+  - stationary excluded:    38
+  - duplicates dropped:      1  (Train115.csv)
+Modelling frame:           233 rows, 240 features
+Class counts: Normal 195 / Side II 24 / Side I 14
+```
+
+| fold | n | Normal | Side I | Side II |
+|---|---|---|---|---|
+| 0 | 47 | 39 | 3 | 5 |
+| 1 | 47 | 39 | 3 | 5 |
+| 2 | 47 | 39 | 3 | 5 |
+| 3 | 46 | 39 | **2** | 5 |
+| 4 | 46 | 39 | 3 | 4 |
+
+All assertions passed: folds cover every row exactly once, no row in two folds, every fold
+has ≥2 of each minority class, no stationary/duplicate rows survive, `file_id` unique, no
+near-constant features survive.
+
+### Independent review of Phase 3 — outcomes
+
+**Near-duplicate leakage: checked and clean.** The worry was that files recorded from the
+same run seconds apart would be highly correlated without being byte-identical, which would
+make ungrouped `StratifiedKFold` unsound. Pairwise nearest-neighbour distances over the
+233×239 z-scored feature matrix are smoothly unimodal (min 8.06, median 12.23,
+mean 12.74 ± 2.82) — no tight cluster, no evidence of run-grouping. **Ungrouped stratified
+k-fold is sound here.** (A first pass using raw cosine similarity looked alarming — median
+0.93 — but that's an artifact of these features being mostly non-negative magnitude
+statistics sharing a "loudness" direction; standardised Euclidean is the trustworthy metric.)
+
+**A second degenerate feature, with a root cause worth knowing.**
+`asym_ratio_shock_dominant_wavelength_m_max` is constant (std 2.7e-9) — but *only in the
+modelling frame*, which is why the first pass missed it: across all 272 rows it varies
+(0 for stationary files, 1 for moving), and only becomes constant once stationary files are
+excluded. Root cause: `dominant_wavelength_m = speed / dominant_freq`, so the **max**
+wavelength over a side's channels is set by the **lowest** dominant frequency — which
+saturates at the first FFT bin (1 Hz, since the window is exactly 1 s). Both sides hit that
+floor on every file, so max-wavelength collapses to `speed` on both sides: difference
+exactly 0, ratio exactly 1. Confirmed: `Side_{I,II}_shock_dominant_wavelength_m_max`
+correlate **+1.000** with `speed_mps`.
+
+Both are now excluded (239 features), and `split.py` asserts no near-constant feature
+survives, so this can't silently recur.
+
+**Broader implication for Phase 5:** most *per-side* wavelength features correlate 0.78–0.98
+with speed — they are largely speed in disguise. The *asymmetry* versions correlate only
+−0.21 to +0.18 with speed, i.e. they carry genuine side-contrast information. This motivates
+a feature-pruning ablation in Phase 5 rather than assuming all 239 features earn their place.
+
+**Honest caveat to carry into Phase 4:** fold 3 validates Side I on **2 files**. One
+misclassification there swings that fold's Side I recall by 50 points. Per-fold Side I F1
+will be very noisy — we should read the *mean across folds* and expect a wide spread, not
+treat any single fold as signal. This is a hard data limit (n=14), not something to tune away.
 
 **Stop point — what to check and how:**
-- I'll print each fold's class counts — every fold should have ≥2 Side I and ≥2 Side II.
-  With 14 Side I over 5 folds, expect 2–3 per fold; a fold with 0 or 1 makes that fold's
-  Side I F1 meaningless and needs flagging, not silently averaging.
-- Confirm no file appears in two folds, and that the duplicate pair landed together —
-  both asserted in code, not just claimed.
-- Row count sanity: 234 moving rows (272 − 38 stationary).
+- Re-run `python -m subsystems.rail_corrugation.split` — it self-checks via assertions, so
+  a silent pass means the coverage/overlap/minority-count guarantees actually hold.
+- Sanity-check the arithmetic yourself: 272 − 38 stationary − 1 duplicate = 233. ✓
+- Feature count dropped 241 → 240: the degenerate constant feature
+  (`asym_diff_shock_dominant_wavelength_m_max`) is now excluded via `feature_columns()`.
+- Judgment call to weigh in on: dropping `Train115` vs. keeping it grouped into one fold.
 
 ---
 
@@ -210,12 +274,25 @@ each fold and the mean across folds. No hyperparameter tuning yet — this is th
 
 ## Phase 5 — Iteration / ablations
 
-Plan: compare a few concrete variants against the Phase 4 baseline, all measured on the
-same CV macro F1:
+**Use `RepeatedStratifiedKFold(n_splits=5, n_repeats=5)` for all ablation comparisons**, not
+the single-seed 5-fold. With 2–3 Side I per validation fold, a single seed's macro F1 is
+noisy enough that we could easily select a variant that won on a lucky split. 25 fits of
+`HistGradientBoostingClassifier` on 233×239 is seconds of compute — cheap insurance against
+choosing on noise. Report mean ± std across repeats.
+
+Variants to compare against the Phase 4 baseline:
 - mean-pooling-only features vs. mean+max+asymmetry (current) feature set
+- **feature pruning**: drop the per-side wavelength features that are largely speed proxies
+  (0.78–0.98 correlation with speed), keep the asymmetry versions
 - single 3-way multiclass classifier vs. two independent binary detectors (Side I
   present? Side II present?) combined post-hoc
 - with vs. without class weighting
+- anything that specifically targets **Side I**, the bottleneck class (AUC 0.69 on the
+  headline asymmetry feature vs 0.92 for Side II)
+
+**Leakage discipline for this phase:** `HistGradientBoostingClassifier` needs no scaling, but
+if any variant introduces scaling, imputation, or SMOTE-style oversampling, it must be fit
+**inside** each fold, never on the full 233-row frame.
 
 **Stop point — what to check and how:**
 - I'll present a small comparison table (variant → mean CV macro F1 ± std across folds).
@@ -268,8 +345,15 @@ Plan: run `predict_rail` over every file in `Test/` (68 files), write
       `Train165`==`Train187` removed automatically as stationary
 - [x] Stratified k-fold (k=5) **by label alone** — the stationary dimension is constant
       once stationary rows are excluded
-- [ ] `asym_diff_shock_dominant_wavelength_m_max` is constant 0.0 across all rows —
-      drop as degenerate (harmless to trees, but shouldn't ship in the feature list)
+- [x] Two degenerate features dropped (`asym_{diff,ratio}_shock_dominant_wavelength_m_max`),
+      both artifacts of max-wavelength saturating at the 1 Hz FFT bin ⇒ 239 features
+- [x] Near-duplicate/run-grouping leakage checked in feature space — none found, so
+      ungrouped stratified k-fold is sound
+- [ ] **Write-up caveats to record**: (a) `speed_mps` is quantised to ~0.0297 m/s steps
+      (π×0.85/90 per rising edge), so repeated identical speed values across files are a
+      formula artifact, not duplicate recordings; (b) the asymmetry features were designed
+      by inspecting labels across the whole training set — normal EDA, not test leakage, but
+      it mildly optimism-biases CV vs. a fully blind pipeline
 - [ ] Mean+max+std pooling vs. simpler aggregation
 - [ ] Single multiclass model vs. two binary detectors
 - [ ] Any oversampling/class-weighting choice
