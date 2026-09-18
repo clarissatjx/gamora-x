@@ -66,7 +66,7 @@ SUBS = {
 N_LIVE = sum(1 for k, s in SUBS.items() if s["live"] and k != "overview")
 PAGES = {"door": door.render, "shm": shm.render, "acv": acv_page.render, "rail": rail_page.render}
 
-st.session_state.setdefault("view", "door")
+st.session_state.setdefault("view", "overview")
 st.session_state.setdefault("batch", False)
 st.session_state.setdefault("evidence", True)
 st.session_state.setdefault("mode", "dark")
