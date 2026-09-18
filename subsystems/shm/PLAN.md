@@ -79,5 +79,9 @@ Commands: `python -m subsystems.shm.train` · `python -m subsystems.shm.evaluate
 
 - [x] Pipeline, gates, `model.joblib`, `predictions/shm_predictions.csv`
 - [x] App page wired, verified in Chrome, app path == CLI
+- [x] **Official held-out score: 0.9743** (judge leaderboard) — equals the analytic LOO estimate
+      (0.9744) to four decimals; the ridge correction's +0.34 LOO gain did not carry over to Test.
+      For the write-up: the physical model's own error estimate was honest, and the residual ~2.6%
+      MAPE is the part of the organisers' rainflow procedure we could not recover.
 - [ ] Demo recording of the SHM tab
 - [ ] Write-up paragraph (numbers above)

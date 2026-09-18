@@ -187,5 +187,6 @@ skeleton exists.
       fixed; model and Test predictions byte-identical after the fixes. One residual caveat for the write-up: the
       two lowest-current Abnormal Train cycles (Close 309 mA, Open 386 mA) are missed under leave-one-out, so a
       *mild* resistance case near the class boundary could be missed — no Test cycle sits in that zone.
+- [x] **Official held-out score: 1.000** (judge leaderboard) — every cycle correctly bounded and labelled
 - [ ] Door tab demoed end-to-end in the browser for the video
 - [ ] Write-up paragraph drafted (all the numbers needed are in this checklist)

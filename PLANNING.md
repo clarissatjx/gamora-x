@@ -146,6 +146,16 @@ Each `inference/*.py` function is also what gets called in bulk to generate the 
 - Exact hackathon start/deadline times and when the held-out test input files get released (needed to finalize Section 6's hour markers).
 - Confirm registered team name for the final submission folder name.
 
+## 9b. Official held-out scores (from the organisers' judge leaderboard)
+
+| Subsystem | Primary metric | Score | Note |
+|---|---|---|---|
+| Door | IoU-weighted F1 | **1.000** | matches the time-ordered holdout estimate exactly |
+| ACV | rank-decay | 0.875 | true faulty car ranked 2nd of 8 (we ranked `04` first; answer was `01`) |
+| Rail Corrugation | macro F1 | 0.888 | |
+| SHM | max(0, 1 − MAPE) | 0.9743 | equals the analytic model's LOO estimate (0.9744) to four decimals |
+| **Overall = Average** | mean of 4 | **0.934** | all four attempted, so both combined scores coincide |
+
 ## 10. Deliverables checklist (compulsory)
 
 - [ ] `demo_video.<ext>` — ≤3 min, shows app end-to-end for every subsystem attempted
