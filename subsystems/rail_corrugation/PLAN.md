@@ -393,6 +393,75 @@ Variants to compare against the Phase 4 baseline:
 if any variant introduces scaling, imputation, or SMOTE-style oversampling, it must be fit
 **inside** each fold, never on the full 233-row frame.
 
+### Results (DONE, pending your check)
+
+Files: `ablations.py` (8 variants), `threshold_tuning.py` (decision-rule sweep). Each
+variant scored identically: 5 independent 5-fold CVs, pooled macro F1 per repeat, then
+mean ± sd across repeats.
+
+| variant | n_feat | macro F1 | sd | F1 Normal | F1 Side I | F1 Side II |
+|---|---|---|---|---|---|---|
+| **A. baseline (all features)** | 239 | **0.806** | 0.029 | 0.970 | 0.570 | 0.878 |
+| G. speed-residualised asymmetry | 239 | 0.805 | 0.036 | 0.970 | 0.582 | 0.863 |
+| E. no class weighting | 239 | 0.795 | 0.015 | 0.966 | 0.547 | 0.873 |
+| C. drop wavelength family | 217 | 0.791 | 0.037 | 0.972 | 0.542 | 0.859 |
+| F. two binary detectors | 239 | 0.762 | 0.042 | 0.960 | 0.477 | 0.849 |
+| H. compact + residualised | 109 | 0.613 | 0.019 | 0.930 | 0.220 | 0.690 |
+| D. compact (asym, no wavelength) | 109 | 0.609 | 0.027 | 0.931 | 0.189 | 0.707 |
+| B. asymmetry only | 119 | 0.597 | 0.025 | 0.927 | 0.189 | 0.676 |
+
+Plus a fault-probability boost sweep (bias the decision rule toward the fault classes,
+trading Normal precision for fault recall — macro F1 should reward this since Normal F1 has
+headroom at 0.97):
+
+| boost | macro F1 | F1 Normal | F1 Side I | F1 Side II |
+|---|---|---|---|---|
+| 1.0 (default argmax) | 0.806 | 0.970 | 0.570 | 0.878 |
+| 4.0 | 0.803 | 0.967 | 0.584 | 0.858 |
+| 8.0 | 0.808 | 0.967 | 0.600 | 0.856 |
+
+**Conclusion: nothing beats the baseline. Ship variant A unchanged.**
+
+### What was learned (this is the write-up material)
+
+Five hypothesised improvements were tested and **all five were rejected**:
+
+1. **Feature pruning — my own hypothesis, and badly wrong.** I argued from the Side I
+   diagnosis that 239 features against 14 minority examples was diluting the model, since
+   `Train194` (asymmetry +0.128, higher than most *caught* files) was still predicted Normal.
+   Pruning to asymmetry-only was **catastrophic**: Side I F1 collapsed 0.570 → 0.189. The raw
+   per-side features carry most of the signal; the asymmetry features are valuable *in
+   addition to* them, not as a replacement. Gradient boosting handled the wide feature set
+   fine — the dilution worry was unfounded.
+2. **Speed-residualised asymmetry** (the reviewer's recommendation): a wash (0.805 vs 0.806).
+   It did shift the trade as predicted — Side I F1 up 0.570 → 0.582, Side II down 0.878 →
+   0.863 — but netted nothing, consistent with it addressing at most 2 of 7 misses.
+3. **Two binary detectors instead of one 3-way model**: clearly worse (0.762). The single
+   multiclass model wins.
+4. **`class_weight=None`**: worse (0.795 vs 0.806) — a third independent measurement now
+   agreeing that `balanced` is correct, after the single-seed result that suggested otherwise.
+5. **Fault-probability boosting**: +0.002, deep inside noise. It does lift Side I F1 to 0.600
+   at boost 8.0, but gives back an equal amount on Side II. The trade the metric appeared to
+   favour is real in direction but self-cancelling in magnitude.
+
+**The Side I ceiling is a data limit, not a modelling deficiency.** With 14 examples, several
+genuinely overlapping with Normal in feature space (`Train180` sits at the 59th percentile of
+high-speed Normal files), no reweighting, decomposition, or feature transform tested here
+moves it. Believing otherwise would require reading a sub-noise gain as signal.
+
+**Methodological note worth stating in the write-up**: every variant was judged against a
+pre-declared ±0.03 noise floor measured over 30 seeds *before* the ablations were run, not
+chosen after seeing results. That is why five plausible ideas were rejected rather than one
+lucky seed being promoted.
+
+**Stop point — what to check and how:**
+- Re-run `python -m subsystems.rail_corrugation.ablations` (a few minutes) and
+  `python -m subsystems.rail_corrugation.threshold_tuning`; both are seeded and should
+  reproduce the tables above.
+- Sanity-check the headline conclusion: does any variant beat A by more than 0.03? (No.)
+- Judgment call: accept "ship the baseline" and move to Phases 6–7, or is there a variant
+  you want tested that I haven't covered?
+
 **Stop point — what to check and how:**
 - I'll present a small comparison table (variant → mean CV macro F1 ± std across folds).
 - You pick which variant we ship, or ask for another variant — this is a judgment call,
