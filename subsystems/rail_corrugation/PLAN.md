@@ -252,23 +252,122 @@ treat any single fold as signal. This is a hard data limit (n=14), not something
 
 ---
 
-## Phase 4 — Baseline model + macro-F1 evaluation
+## Phase 4 —    (DONE, pending your check)
 
-Plan: `model.py` — train a baseline classifier (sklearn `HistGradientBoostingClassifier`,
-class-balanced) via the 5-fold CV from Phase 3, report **per-class F1 and macro F1** for
-each fold and the mean across folds. No hyperparameter tuning yet — this is the
-"does the pipeline work end-to-end" checkpoint.
+File: `model.py` — `HistGradientBoostingClassifier(class_weight="balanced")`, fit fresh
+inside each of the 5 folds, no tuning. `cross_validate()` / `pooled_scores()` are written
+for reuse so every Phase 5 ablation is measured identically.
+
+### Results
+
+| | F1 Normal | F1 Side I | F1 Side II | **macro F1** | accuracy |
+|---|---|---|---|---|---|
+| mean across folds | 0.965 | 0.593 | 0.841 | **0.800** (sd 0.022) | 0.936 |
+| pooled out-of-fold | 0.965 | 0.609 | 0.851 | **0.808** | 0.936 |
+| always-Normal reference | — | 0 | 0 | **0.304** | 0.837 |
+
+Out-of-fold confusion matrix (rows = true):
+
+| | Normal | Side I | Side II |
+|---|---|---|---|
+| **Normal** | 191 | 2 | 2 |
+| **Side I** | **6** | 7 | 1 |
+| **Side II** | 4 | 0 | 20 |
+
+**Accuracy 0.936 vs macro F1 0.808** — exactly the gap the metric exists to expose. A model
+tuned on accuracy would look near-perfect while missing half the Side I faults.
+
+### What this tells us
+
+- **Side I recall is the bottleneck: 7/14 = 0.50.** Six of fourteen Side I files are
+  predicted Normal. Side I precision is fine (7/9 = 0.78) — the model is *missing* Side I
+  faults, not over-calling them. Everything in Phase 5 should target recall on this class;
+  lifting it from 0.50 to ~0.70 would take macro F1 from ≈0.81 to ≈0.85.
+- Side II is in good shape (recall 20/24 = 0.83, precision 0.87), consistent with its
+  AUC 0.92 on the asymmetry feature.
+- Per-fold Side I F1 swings 0.50–0.80 (sd 0.136) exactly as the Phase 3 caveat predicted —
+  read the pooled number, not any single fold. This is why Phase 5 uses repeated CV.
+- **The stationary-exclusion decision cost us nothing in estimate fidelity.** Adding the
+  stationary files back as free correct Normals moves macro F1 only 0.808 → **0.810**,
+  because Normal F1 was already near ceiling and macro F1 weights it equally with the rare
+  classes. The "inflated score" worry turned out to be negligible *for this metric* — good
+  news, since we got the honesty benefit for free.
 
 **Stop point — what to check and how:**
-- The critical check: is macro F1 meaningfully above ~0.33? A number stuck near 0.33
-  with Side I/II F1 near 0 means the model has collapsed to predicting Normal — signals
-  a real problem (features, class weighting, or bug), not something to iterate past.
-- Compare per-fold macro F1 variance — wildly inconsistent folds suggest the minority
-  classes are too sparse per fold to trust single-run numbers (expected given n=14/24,
-  worth discussing rather than silently accepting).
-- I'll also report **plain accuracy alongside macro F1** in this step specifically so you
-  can see the gap between them directly — a large gap (high accuracy, so-so macro F1) is
-  expected and confirms the metric choice matters, not a bug.
+- Re-run `python -m subsystems.rail_corrugation.model` and confirm you get macro F1 ≈ 0.81.
+  It's seeded (`random_state=42`), so it should reproduce exactly — if it doesn't, something
+  is nondeterministic that shouldn't be.
+- The critical check, now passed: macro F1 0.808 is far above the 0.304 always-Normal
+  collapse, and no class has F1 near 0. The model genuinely detects both fault types.
+- Sanity-check the confusion matrix against the per-class F1s yourself — e.g. Side I
+  recall 7/14 and precision 7/9 give F1 = 2·(0.778·0.5)/(0.778+0.5) = 0.609. ✓
+- Judgment call for Phase 5: is lifting Side I recall worth trading a little Normal
+  precision for? Macro F1 says yes (Normal F1 has room to fall from 0.965 before it costs
+  as much as Side I gains), but it's your call how aggressively to push it.
+
+### Independent review of Phase 4 — outcomes
+
+**Reproduced exactly**, CV harness verified correct (fresh estimator per fold, positional
+alignment of out-of-fold predictions confirmed by assertion, nothing fit outside the fold's
+training portion).
+
+**macro F1 0.808 is a typical draw, not a lucky seed.** Over 30 seeds: mean 0.801, median
+0.803, sd 0.030, range [0.736, 0.845]. Seed 42 sits on the median. **Expect the real test
+score anywhere in roughly [0.73, 0.85]** — with n=14 Side I, that spread is irreducible.
+This noise floor (sd ≈ 0.03) is the bar any Phase 5 "improvement" must clear to be real.
+
+**A claimed improvement that did not survive checking.** The review reported that
+`class_weight=None` beat `"balanced"` (0.832 vs 0.808) — but measured on a single seed,
+precisely the trap repeated CV exists to avoid. Re-measured over 15 seeds:
+
+| setting | macro F1 |
+|---|---|
+| `class_weight="balanced"` | 0.8019 ± 0.0323 |
+| `class_weight=None` | 0.7937 ± 0.0348 |
+
+Per-seed difference (None − balanced) = **−0.008 ± 0.034**; None wins on only 6/15 seeds.
+The apparent +0.024 advantage was noise. **Keep `balanced`** — marginally better on average
+and more defensible for an imbalanced problem. Recorded because it's a concrete
+demonstration of why single-seed ablations get thrown out.
+
+### Side I diagnosis (`diagnose_side_i.py`) — the real finding
+
+Within Side I, `corr(speed, asymmetry) = −0.755`, far stronger than Normal (−0.17) or
+Side II (−0.27). The asymmetry signature **weakens and then inverts sign as speed rises**,
+and the three fastest Side I files in the dataset (18.4, 18.5, 18.6 m/s) are all missed,
+all with negative asymmetry. All 7 caught files have positive asymmetry; 4 of 7 missed are
+negative or near-zero.
+
+But the high-speed regime (>17 m/s, n=24) is only *partly* exploitable:
+
+| class (>17 m/s) | n | mean asym | range |
+|---|---|---|---|
+| Normal | 17 | −0.0135 | [−0.064, +0.048] |
+| **Side I** | **3** | −0.0513 | [−0.086, −0.016] |
+| Side II | 4 | −0.1261 | [−0.183, −0.072] |
+
+At high speed, Side I lands *between* Normal and Side II — same sign as Side II, so the
+feature no longer identifies *which* side. Per-file: `Train202` (−0.086) is beyond every
+high-speed Normal but sits squarely in Side II's range (so pushing on it risks a Side II
+misclassification — and indeed one Side I file is already predicted Side II); `Train185`
+(−0.053) is borderline at the 6th percentile of Normal; **`Train180` (−0.016) sits at the
+59th percentile of high-speed Normal — genuinely indistinguishable, not fixable by
+conditioning on speed.**
+
+**What this means for Phase 5.** The suggested fix (residualise asymmetry against speed) is
+worth testing but oversold: at most it addresses 2 of 7 misses, and it is being designed
+against **n=3** high-speed Side I files, so any measured gain is far inside the ±0.03 noise
+floor. The tree can already express speed interactions natively, so explicit
+residualisation only helps by making that interaction easier to learn from few samples.
+
+A more principled alternative to test alongside it: because corrugation has a characteristic
+*wavelength*, its excitation frequency scales with speed. Computing band power in
+**speed-scaled frequency bands** (equivalently, binning the spectrum by wavelength rather
+than frequency) is speed-invariant by construction, rather than correcting for speed after
+the fact. That targets the root cause instead of patching the symptom.
+
+**Discipline for Phase 5: treat any gain under ~0.03 macro F1 as unproven**, and prefer the
+simpler model when two variants tie.
 
 ---
 
