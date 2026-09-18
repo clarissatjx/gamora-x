@@ -1,41 +1,36 @@
-"""Placeholder page for subsystems whose model isn't wired into the app yet."""
 import streamlit as st
 
 import theme
 
 
 def render(meta: dict):
-    theme.page_header(meta["title"], meta["subtitle"], [("—", "status"), ("0", "files scored")])
-    theme.note(
-        f"<strong>Not wired up yet.</strong> {meta['status']} "
-        f"Once the model lands, this page takes the same upload → result → download flow as the Door page.",
-        icon="!",
+    theme.page_title(meta["title"], meta["subtitle"])
+    st.write("")
+    theme.banner(
+        f"<strong>Not wired up yet.</strong> {meta['status']} Once the model lands, this page takes "
+        f"the same upload → result → download flow as the Door page.",
+        icon="!", color=theme.AMBER,
     )
+    theme.metrics([
+        ("Status", "pending", "model not yet trained", theme.AMBER),
+        ("Files scored", "0", "nothing submitted yet", None),
+        ("Output", meta["csv"].replace("_predictions.csv", ""), meta["csv"], None),
+        ("Metric", meta["tag"], "held-out test set", None),
+    ])
 
-    left, right = st.columns([1.35, 1])
+    left, right = st.columns([1.4, 1])
     with left:
-        with theme.card("What this model will do"):
-            st.markdown(
-                f"<div style='font-size:13.5px;line-height:1.65;color:{theme.MUTED}'>"
-                f"{meta['detail']}</div>",
-                unsafe_allow_html=True,
-            )
+        with theme.panel("What this model will do"):
+            st.markdown(f'<p class="gx-prose" style="color:{theme.MUTED}">{meta["detail"]}</p>',
+                        unsafe_allow_html=True)
     with right:
-        with theme.card("Submission output"):
-            rows = "".join(
-                f"<div style='display:flex;justify-content:space-between;gap:12px;padding:7px 0;"
-                f"border-bottom:1px solid {theme.LINE}'>"
-                f"<span class='gx-sig'>{col}</span>"
-                f"<span style='font-size:12.5px;color:{theme.MUTED};text-align:right'>{desc}</span></div>"
-                for col, desc in meta["schema"]
-            )
+        with theme.panel("Submission output", meta["csv"]):
             st.markdown(
-                f"<div class='gx-sig' style='color:{theme.INK};font-weight:600;margin-bottom:8px'>"
-                f"{meta['output_file']}</div>{rows}",
+                f'<div style="font-family:{theme.MONO};font-size:12.5px;color:{theme.FAINT};'
+                f'padding-top:6px">{meta["schema"]}</div>',
                 unsafe_allow_html=True,
             )
 
-    st.file_uploader(
-        meta["upload_label"], type=meta["file_types"], disabled=True,
-        key=f"pending_{meta['key']}", help="Enabled once this subsystem's model is trained.",
-    )
+    st.file_uploader(meta["upload"], type=meta["types"], disabled=True,
+                     key=f"pending_{meta['crumb']}",
+                     help="Enabled once this subsystem's model is trained.")
