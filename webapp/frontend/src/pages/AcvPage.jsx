@@ -117,7 +117,7 @@ export default function AcvPage() {
               {result.chart ? (
                 <Panel heading="Cabin temperature vs setpoint, cooling mode"
                        sub="Dashed line is the setpoint. Red is the top-ranked car; the grey band spans the other cars.">
-                  <GapChart points={result.chart.points} />
+                  <GapChart points={result.chart.points} topCar={result.top} hours={result.hours} />
                 </Panel>
               ) : (
                 <Panel heading="Cabin temperature vs setpoint">
