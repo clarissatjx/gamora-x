@@ -523,18 +523,90 @@ repo-level PLANNING.md about whether that's actually compulsory.
 
 ---
 
-## Phase 7 — Generate final predictions + sanity checks
+## Phase 7 — Generate final predictions + sanity checks (DONE, pending your check)
 
-Plan: run `predict_rail` over every file in `Test/` (68 files), write
-`predictions/rail_predictions.csv` with exactly `file_id`, `prediction` columns.
+File: `generate_predictions.py` → **`predictions/rail_predictions.csv`**. It calls the same
+`predict_directory` path as every other caller, so the submission file is produced by the
+shipped inference logic rather than a one-off script.
+
+### Schema checks (asserted in code, not just eyeballed)
+
+Columns exactly `file_id,prediction`; 68 rows; `Test1.csv`..`Test68.csv` all present and
+unique; every `file_id` carries the `.csv` extension; every label is exactly `Normal`,
+`Side I`, or `Side II`; no nulls. All pass. A formatting slip here forfeits the subsystem's
+entire score regardless of model quality, which is why these are assertions.
+
+### Predicted distribution
+
+| class | test n | test % | train % (moving) |
+|---|---|---|---|
+| Normal | 59 | 86.8 | 83.7 |
+| Side I | 5 | 7.4 | 6.0 |
+| Side II | 4 | 5.9 | 10.3 |
+
+The nine fault predictions are `Test13, 22, 27, 33, 46` (Side I) and
+`Test14, 26, 43, 66` (Side II). Of the 59 Normal predictions, **9 come from the stationary
+rule** rather than the model.
+
+Normal and Side I track the training distribution closely. **Side II comes in lower than
+training (5.9% vs 10.3%)** — worth noting rather than glossing: with ~59 moving test files,
+a matching rate would imply ~6 Side II, and at the model's measured Side II recall of 0.83
+we would expect ~5. Predicting 4 is inside sampling noise at these counts, but it is the one
+number in this table that isn't a close match, so it belongs in the write-up as an observation
+rather than being quietly ignored.
 
 **Stop point — what to check and how:**
-- Row count exactly 68, one row per `Test1.csv`..`Test68.csv`.
-- `prediction` values are exactly `Normal` / `Side I` / `Side II` (exact spelling/casing
-  — this is graded mechanically).
-- Open the CSV yourself and compare its class distribution to the train distribution —
-  wildly different (e.g. 100% one class) is a red flag worth discussing before calling
-  this done.
+- Re-run `python -m subsystems.rail_corrugation.generate_predictions`; it self-asserts.
+- Open `predictions/rail_predictions.csv` — confirm 69 lines (68 + header), no index column,
+  and no stray whitespace.
+- Compare against the organisers' `04_Example_Submission/rail_predictions.csv` for format.
+- Judgment call: accept the Side II rate as sampling noise, or investigate further?
+
+---
+
+## Phase 8 — Wavelength-band features: tested and rejected
+
+A final review asked whether anything was still missing, and identified the most
+physically-motivated gap: the spectral features were coarse (one dominant frequency, one
+centroid, one energy ratio per channel — **no band structure**), while the Info Kit describes
+the actual detection method as *"time-frequency analysis extracts the dominant wavelength"*.
+Corrugation is defined by its wavelength, and a defect of wavelength L excites the axle box
+at `f = speed / L` — so a band fixed in **wavelength** tracks the same physical defect across
+speeds, whereas our frequency-domain features do not.
+
+An exploratory check supported this: power in a 0.12–0.25 m wavelength band gave Side I
+one-vs-rest **AUC 0.813**, far above the 0.69 of the existing headline asymmetry feature, and
+correlated only 0.33 with it — genuinely new information.
+
+**Implementation.** Relative power in five log-spaced wavelength bands spanning 2–64 cm (the
+Info Kit's stated "few centimetres to dozens of centimetres"), per channel, aggregated by
+side × signal type, with asymmetry versions generated automatically: +120 features, 241 → 361.
+The bands were fixed **a priori from the documented physical range, not tuned against measured
+separability** — choosing bands by what scores best on training labels is a
+multiple-comparisons trap, and the exploratory 0.813 above was itself the best of six bands
+tried, so it was already optimistic.
+
+**Result: rejected. The features actively hurt.**
+
+| variant | n_feat | macro F1 | F1 Side I |
+|---|---|---|---|
+| **pre-band baseline** | 239 | **0.806** | **0.570** |
+| + band asymmetry only | 299 | 0.771 | 0.494 |
+| + wavelength bands (all) | 359 | 0.768 | 0.475 |
+
+Adding them cost **0.038 macro F1** and **0.10 on Side I** — larger than the ±0.03 noise
+floor, so a real degradation rather than a wash.
+
+**Why this is worth recording.** A feature with strong *univariate* separability still damaged
+the *multivariate* model, because it arrived as 120 correlated columns against 233 rows with
+14 Side I examples. It is the mirror image of the Phase 5 pruning result: that experiment
+showed removing features hurts, this one shows adding them hurts too. The 239-feature set sits
+near a local optimum for this dataset size, and the binding constraint is the number of Side I
+examples, not the richness of the representation.
+
+The feature code was reverted rather than left disabled, so `features.py` reflects what
+actually ships. `config.py` and `features.py` are byte-identical to their pre-experiment
+state, and the regenerated `rail_predictions.csv` is unchanged.
 
 ---
 
@@ -553,14 +625,24 @@ Plan: run `predict_rail` over every file in `Test/` (68 files), write
       both artifacts of max-wavelength saturating at the 1 Hz FFT bin ⇒ 239 features
 - [x] Near-duplicate/run-grouping leakage checked in feature space — none found, so
       ungrouped stratified k-fold is sound
+- [ ] Speed derivation convention is still the one genuinely open call — see the first entry
 - [ ] **Write-up caveats to record**: (a) `speed_mps` is quantised to ~0.0297 m/s steps
       (π×0.85/90 per rising edge), so repeated identical speed values across files are a
       formula artifact, not duplicate recordings; (b) the asymmetry features were designed
       by inspecting labels across the whole training set — normal EDA, not test leakage, but
       it mildly optimism-biases CV vs. a fully blind pipeline
-- [ ] Mean+max+std pooling vs. simpler aggregation
-- [ ] Single multiclass model vs. two binary detectors
-- [ ] Any oversampling/class-weighting choice
-- [ ] Mean+max+std pooling vs. simpler aggregation
-- [ ] Single multiclass model vs. two binary detectors
-- [ ] Any oversampling/class-weighting choice
+- [x] Pooling: **mean + max + std kept**. Phase 5 variants B/D/H, which cut the raw per-side
+      features back to asymmetry summaries, collapsed Side I F1 from 0.570 to 0.15–0.25
+- [x] **Single 3-way multiclass model**, not two binary detectors — the decomposition scored
+      0.762 vs 0.806 (Phase 5 variant F)
+- [x] **`class_weight="balanced"`**, no oversampling — measured three separate times;
+      `None` scored 0.795 vs 0.806 under repeated CV, and SMOTE-style oversampling was not
+      pursued because the class weighting already addresses the imbalance and adds a
+      fold-fitting step that could leak if done carelessly
+- [x] **Wavelength-band power features rejected** — see Phase 8; they cost 0.038 macro F1
+      despite strong univariate separability
+- [x] **Estimator family: HistGradientBoosting** — RandomForest 0.738, LogisticRegression
+      0.714, SVC 0.675, ExtraTrees 0.606, all clearly worse under the same protocol
+- [x] **No seed-averaging/bagging** — averaging 7 differently-seeded models per fold gave
+      0.806, identical to a single model; the variance comes from fold composition (n=14
+      Side I), not model-fit randomness
