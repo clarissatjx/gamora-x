@@ -674,9 +674,29 @@ Univariate Side I AUC: band asymmetry 0.750 (vs the exploratory 0.813, which was
 per-axle max 0.747, headline `asym_diff_vib_rms_mean` 0.715. Better single features, no
 multivariate gain. The code was reverted per the Phase 8 convention.
 
-**Conclusion, now supported seven independent ways:** the 239-feature default-hyperparameter
-model is a local optimum for this dataset; the Side I ceiling is the 14 training examples. The
-0.888 test score is above the 0.806 ± 0.03 CV estimate — a favourable draw on ~5 Side I test
+**Round 2 — three further ideas, all rejected** (same paired protocol):
+
+| variant | macro F1 | Side I F1 | gain | wins/5 |
+|---|---|---|---|---|
+| + side-averaged, sensor-normalised spectra binned by wavelength (34 features) | 0.793 | 0.544 | −0.013 | 1 |
+| demeaned shock time features (rms / zero-crossing) | 0.762 | 0.480 | −0.044 | 0 |
+| ensemble of baseline and the spectrum view (mean probability) | 0.720 | 0.388 | −0.086 | 0 |
+| 2 × 0.5 s window augmentation, file-grouped folds, probabilities averaged per file | 0.702 | 0.314 | −0.104 | 0 |
+| spectrum view alone | 0.565 | 0.147 | −0.241 | 0 |
+
+Two of these are findings, not just failures. (a) The shock channels carry a DC offset that
+looks like sensor bias, but **demeaning it costs 0.044** — the offset differs between files in
+a label-relevant way, so it must be left in. (b) The textbook corrugation detector — average the
+32 channel spectra per side, bin by wavelength — is far *weaker* than per-channel statistics. In
+a 1 s window a ~150 m train spans different track, so a corrugated section sits under only some
+axle boxes; averaging across a side dilutes exactly those, while the `_max`-pooled per-channel
+features (the ones permutation importance singles out) capture "the loudest box". Window
+augmentation fails for the same reason.
+
+**Conclusion, now supported twelve independent ways:** the 239-feature default-hyperparameter
+model is a local optimum for this dataset — tuning in both directions, three feature families
+added, one removed, two re-representations, augmentation and an ensemble all score lower; the
+Side I ceiling is the 14 training examples. The 0.888 test score is above the 0.806 ± 0.03 CV estimate — a favourable draw on ~5 Side I test
 files, where each file is ≈ ±0.04 macro F1 — and the write-up should present capability as
 ≈ 0.80, not 0.89.
 
