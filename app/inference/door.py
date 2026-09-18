@@ -1,3 +1,5 @@
+import io
+
 import altair as alt
 import numpy as np
 import pandas as pd
@@ -8,8 +10,14 @@ from subsystems.door.loader import CURRENT_COL, POSITION_COL, TIME_COL, load_str
 from subsystems.door.predict import load_model, run, to_output
 
 ABNORMAL = "Abnormal resistance"
+# CSS variables for HTML (follow the active mode); charts use concrete hex below.
 STATUS_COLOR = {"Normal": theme.GREEN, ABNORMAL: theme.RED}
 SAMPLE_SECONDS = 0.02
+
+
+def _status_hex() -> dict:
+    c = theme.chart_colors()
+    return {"Normal": c["green"], ABNORMAL: c["red"]}
 
 
 @st.cache_resource
@@ -40,7 +48,9 @@ def build_chart(df: pd.DataFrame, segs: pd.DataFrame, out: pd.DataFrame) -> alt.
         "Starts": out.start_time.to_numpy(), "Ends": out.end_time.to_numpy(),
         "Status": out.prediction.to_numpy(), "Confidence": out.confidence.to_numpy(),
     })
-    scale = alt.Scale(domain=list(STATUS_COLOR), range=list(STATUS_COLOR.values()))
+    c = theme.chart_colors()
+    status_hex = _status_hex()
+    scale = alt.Scale(domain=list(status_hex), range=list(status_hex.values()))
     rects = alt.Chart(bands).mark_rect(opacity=0.14, strokeWidth=1, strokeOpacity=0.45).encode(
         x=alt.X("x:Q", title=None, axis=alt.Axis(labels=False, ticks=False, domain=False)),
         x2="x2:Q",
@@ -49,13 +59,13 @@ def build_chart(df: pd.DataFrame, segs: pd.DataFrame, out: pd.DataFrame) -> alt.
         tooltip=["Cycle", "Starts", "Ends", "Status", "Confidence"],
     )
     pos = alt.Chart(trace).mark_line(
-        strokeWidth=1.3, color=theme.DIM, strokeDash=[3, 3], opacity=0.9,
+        strokeWidth=1.3, color=c["dim"], strokeDash=[3, 3], opacity=0.9,
     ).encode(
         x="x:Q",
         y=alt.Y("position:Q", axis=None,
                 scale=alt.Scale(domain=[0, float(trace.position.max() or 1) * 3.4])),
     )
-    line = alt.Chart(trace).mark_line(strokeWidth=1.6, color=theme.ACCENT).encode(
+    line = alt.Chart(trace).mark_line(strokeWidth=1.6, color=c["accent"]).encode(
         x="x:Q", y=alt.Y("current:Q", title="motor current (mA)"),
     )
     layered = alt.layer(rects, pos, line).resolve_scale(y="independent", color="shared")
@@ -118,12 +128,20 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
     )
     st.write("")
 
+    upload_key = f"door_upload_{'batch' if batch else 'single'}"
     files = st.file_uploader(
         "Door controller recording (.csv)", type=["csv"],
-        accept_multiple_files=batch, key=f"door_upload_{'batch' if batch else 'single'}",
+        accept_multiple_files=batch, key=upload_key,
         help="A continuous recording containing many door open/close cycles back to back.",
     )
-    uploads = [f for f in (files if batch else [files]) if f is not None]
+    picked = [f for f in (files if batch else [files]) if f is not None]
+
+    # A sidebar button calls st.rerun(), which aborts the script before this uploader is
+    # created — Streamlit then drops state for widgets that did not render, so the file
+    # would vanish on every nav/mode change. Keep our own copy of the bytes instead.
+    if picked:
+        st.session_state["door_files"] = [(f.name, f.getvalue()) for f in picked]
+    uploads = st.session_state.get("door_files", [])
 
     if not uploads:
         theme.banner(
@@ -135,25 +153,25 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
         return
 
     frames, first, failures = [], None, []
-    for f in uploads:
+    for name, data in uploads:
         try:
-            df, segs, out = process(f)
+            df, segs, out = process(io.BytesIO(data))
         except ValueError as e:
-            failures.append((f.name, str(e)))
+            failures.append((name, str(e)))
             continue
         except Exception as e:  # noqa: BLE001
-            failures.append((f.name, f"could not read this file: {e}"))
+            failures.append((name, f"could not read this file: {e}"))
             continue
         frames.append(out)
         if first is None:
-            first = (f, df, segs, out)
+            first = (name, df, segs, out)
 
     for name, msg in failures:
         st.error(f"{name} — {msg}")
     if first is None:
         return
 
-    f0, df0, segs0, out0 = first
+    name0, df0, segs0, out0 = first
     combined = pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
     combined.attrs["n_files"] = len(frames)
     n_abn = int((combined.prediction == ABNORMAL).sum())
@@ -168,7 +186,7 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
         )
     else:
         theme.banner(
-            f"{f0.name} accepted — {len(df0):,} rows, {df0.shape[1] - 1} columns, "
+            f"{name0} accepted — {len(df0):,} rows, {df0.shape[1] - 1} columns, "
             f"{int(dur // 60)} min {dur % 60:04.1f} s of stream. {len(out0)} cycles detected.",
         )
 
@@ -201,8 +219,15 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
             theme.evidence(*ev)
 
     _table(combined, batch)
-    st.download_button(
-        f"⬇  Download {meta['csv']}",
-        combined[["start_time", "end_time", "prediction", "confidence"]].to_csv(index=False).encode(),
-        file_name=meta["csv"], mime="text/csv",
-    )
+    dl, rs, _ = st.columns([1.1, 0.6, 3])
+    with dl:
+        st.download_button(
+            f"⬇  Download {meta['csv']}",
+            combined[["start_time", "end_time", "prediction", "confidence"]]
+            .to_csv(index=False).encode(),
+            file_name=meta["csv"], mime="text/csv", use_container_width=True,
+        )
+    if rs.button("Reset", use_container_width=True):
+        st.session_state.pop("door_files", None)
+        st.session_state.pop(upload_key, None)
+        st.rerun()

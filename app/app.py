@@ -83,11 +83,12 @@ SUBS = {
 N_LIVE = sum(1 for k, s in SUBS.items() if s["live"] and k != "overview")
 
 st.set_page_config(page_title="gamora · CdM", page_icon="◆", layout="wide")
-theme.inject()
 
 st.session_state.setdefault("view", "door")
 st.session_state.setdefault("batch", False)
 st.session_state.setdefault("evidence", True)
+st.session_state.setdefault("mode", "dark")
+theme.inject()
 
 with st.sidebar:
     theme.brand()
@@ -110,6 +111,17 @@ with st.sidebar:
         st.session_state.batch = True
         st.rerun()
     st.session_state.evidence = st.checkbox("Show model evidence", value=st.session_state.evidence)
+
+    theme.label("Appearance")
+    d, l = st.columns(2)
+    if d.button("Dark", use_container_width=True,
+                type="primary" if st.session_state.mode == "dark" else "secondary"):
+        st.session_state.mode = "dark"
+        st.rerun()
+    if l.button("Light", use_container_width=True,
+                type="primary" if st.session_state.mode == "light" else "secondary"):
+        st.session_state.mode = "light"
+        st.rerun()
 
     theme.sidebar_meta(SUBS[st.session_state.view]["meta"])
 
