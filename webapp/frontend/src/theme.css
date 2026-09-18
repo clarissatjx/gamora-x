@@ -136,6 +136,13 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 20p
 .gx-chart { display: flex; align-items: flex-end; gap: 2px; height: 170px; }
 .gx-chart-bar { flex: 1; border-radius: 1px 1px 0 0; min-width: 2px; }
 
+.gx-chart-tip {
+  position: absolute; top: 10px; transform: translateX(-50%); pointer-events: none; z-index: 10;
+  background: var(--gx-panel); border: 1px solid var(--gx-border-strong); border-radius: 8px;
+  padding: 9px 12px; font-size: 12.5px; color: var(--gx-body); white-space: nowrap;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
+
 /* ---------------- sidebar nav ---------------- */
 .gx-nav-btn {
   all: unset; box-sizing: border-box; width: 100%; height: 38px; cursor: pointer; display: flex;

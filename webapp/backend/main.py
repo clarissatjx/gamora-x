@@ -241,8 +241,10 @@ def build_door_result(data: bytes, file_id: str) -> dict:
     position = df[POSITION_COL].to_numpy()[::step]
     trace = [{"i": int(k), "current": float(c), "position": float(p)}
              for k, (c, p) in enumerate(zip(current, position))]
-    bands = [{"x0": int(r.i0 // step), "x1": int(r.i1 // step), "status": str(status)}
-             for r, status in zip(segs.itertuples(), out.prediction)]
+    bands = [{"x0": int(r.i0 // step), "x1": int(r.i1 // step), "n": k + 1,
+              "status": o.prediction, "start_time": o.start_time, "end_time": o.end_time,
+              "confidence": float(o.confidence)}
+             for k, (r, o) in enumerate(zip(segs.itertuples(), out.itertuples(index=False)))]
 
     cycles = [{"n": k + 1, "start_time": r.start_time, "end_time": r.end_time,
                "prediction": r.prediction, "confidence": float(r.confidence)}
