@@ -8,8 +8,10 @@ for p in (ROOT, ROOT / "app"):
 
 import streamlit as st
 
-import theme
-from inference import door, overview, pending
+st.set_page_config(page_title="gamora · CdM", page_icon="◆", layout="wide")
+
+import theme  # noqa: E402
+from inference import door, overview, pending, shm  # noqa: E402
 
 SUBS = {
     "overview": {
@@ -64,25 +66,16 @@ SUBS = {
                  ("val score", "—", None), ("split", "stratified by class", None)],
     },
     "shm": {
-        "nav": "SHM", "tag": "1−MAPE", "crumb": "shm", "live": False,
+        "nav": "SHM", "tag": "1−MAPE", "crumb": "shm", "live": True,
         "title": "SHM — cumulative fatigue damage",
         "subtitle": "Dynamic stress series reduced to a single cumulative damage value via "
-                    "rainflow counting and a calibrated regressor.",
-        "status": "No model yet — this subsystem hasn't been started.",
-        "detail": "Reads a dynamic-stress time series from a load-bearing structure (carbody or "
-                  "bogie frame) and predicts a single cumulative-damage number. The reference "
-                  "values come from rainflow cycle counting fed through Miner's rule, so the "
-                  "distribution of stress cycle amplitudes — especially the rare large ones — "
-                  "carries most of the signal.",
-        "csv": "shm_predictions.csv", "schema": "file_id, prediction",
-        "upload": "Dynamic stress segment (.csv)", "types": ["csv"],
-        "meta": [("model", "—", None), ("version", "—", None),
-                 ("val score", "—", None), ("split", "by file, AW0/AW4", None)],
+                    "rainflow counting and a calibrated Miner's-rule sum.",
+        "csv": "shm_predictions.csv",
+        "meta": shm.meta_rows(),
     },
 }
 N_LIVE = sum(1 for k, s in SUBS.items() if s["live"] and k != "overview")
-
-st.set_page_config(page_title="gamora · CdM", page_icon="◆", layout="wide")
+PAGES = {"door": door.render, "shm": shm.render}
 
 st.session_state.setdefault("view", "door")
 st.session_state.setdefault("batch", False)
@@ -131,6 +124,6 @@ theme.topbar("batch" if st.session_state.batch and meta["live"] else meta["crumb
 if st.session_state.view == "overview":
     overview.render(meta, SUBS)
 elif meta["live"]:
-    door.render(meta, batch=st.session_state.batch, evidence=st.session_state.evidence)
+    PAGES[st.session_state.view](meta, batch=st.session_state.batch, evidence=st.session_state.evidence)
 else:
     pending.render(meta)
