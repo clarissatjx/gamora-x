@@ -149,7 +149,7 @@ Each `inference/*.py` function is also what gets called in bulk to generate the 
 ## 10. Deliverables checklist (compulsory)
 
 - [ ] `demo_video.<ext>` — ≤3 min, shows app end-to-end for every subsystem attempted
-- [ ] `predictions.zip` — flat, contains only `*_predictions.csv` for attempted subsystems, correct schema per Section 2
+- [ ] `predictions.zip` — flat, contains only `*_predictions.csv` for attempted subsystems, correct schema per Section 2. Build and check it with `python scripts/validate_submission.py --zip` (fails loudly on any schema error)
 - [ ] `app/` — single app, covers every attempted subsystem, used to actually generate the predictions above
 - [ ] Submission folder named exactly as the registered team name
 - [ ] Raw datasets and `04_Example_Submission/` **excluded** from the submission
