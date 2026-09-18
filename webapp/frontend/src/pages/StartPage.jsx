@@ -41,7 +41,7 @@ export default function StartPage({ onOpen }) {
       <Banner text="This app runs four independent models, one per subsystem. Each takes one raw sensor file and gives back a plain-language verdict — not just a class label or a number — plus how urgent it is and how sure the model actually is." />
 
       <Panel heading="The four subsystems">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
           {SUBS.map((s) => (
             <div key={s.key} style={{ background: 'var(--gx-bg)', border: '1px solid var(--gx-border)', borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
