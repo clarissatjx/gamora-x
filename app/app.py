@@ -11,7 +11,7 @@ import streamlit as st
 st.set_page_config(page_title="gamora · CdM", page_icon="◆", layout="wide")
 
 import theme  # noqa: E402
-from inference import door, overview, pending, shm  # noqa: E402
+from inference import acv_page, door, overview, pending, rail_page, shm  # noqa: E402
 
 SUBS = {
     "overview": {
@@ -33,37 +33,22 @@ SUBS = {
         "csv": "door_predictions.csv",
     },
     "acv": {
-        "nav": "ACV", "tag": "rank", "crumb": "acv", "live": False,
+        "nav": "ACV", "tag": "rank", "crumb": "acv", "live": True,
         "title": "ACV — refrigerant leak localisation",
         "subtitle": "Every car in the uploaded file ranked from most to least likely to carry "
                     "the refrigerant leak.",
-        "status": "No model yet — this subsystem hasn't been started.",
-        "detail": "Reads a train's air-conditioning telemetry workbook (one row every 30 seconds, "
-                  "one block of parameters per car) and scores each car against its 8 peers on the "
-                  "same train. A leaking unit has to run harder than its neighbours to hold the "
-                  "same cabin temperature, so the signal is the difference between cars rather "
-                  "than any absolute reading. Output is a ranking, not a yes/no, so a near miss "
-                  "still scores.",
-        "csv": "acv_predictions.csv", "schema": "file_id, ranked_cars",
-        "upload": "ACV telemetry workbook (.xlsx)", "types": ["xlsx"],
-        "meta": [("model", "—", None), ("version", "—", None),
-                 ("val score", "—", None), ("split", "leave-one-case-out", None)],
+        "csv": "acv_predictions.csv",
+        "meta": [("model", "physics gap + heuristic", None), ("version", "acv-v2", None),
+                 ("val score", "1.000 rank-decay", theme.ACCENT), ("split", "leave-one-case-out, 6", None)],
     },
     "rail": {
-        "nav": "Rail Corrugation", "tag": "macro-F1", "crumb": "rail", "live": False,
+        "nav": "Rail Corrugation", "tag": "macro-F1", "crumb": "rail", "live": True,
         "title": "Rail corrugation — 3-class classification",
         "subtitle": "One-second axle-box recording classified Normal, Side I or Side II from 64 "
                     "vibration and shock channels.",
-        "status": "Feature extraction is built (241 features per file); the classifier is pending.",
-        "detail": "Reads vibration and shock from all 64 axle boxes at 10 kHz, derives train speed "
-                  "from the toothed-wheel pulse, and extracts spectral features per rail side — "
-                  "positions 1/3/5/7 are Side I, 2/4/6/8 are Side II. Corrugation is a periodic "
-                  "wear pattern, so the giveaway is a characteristic wavelength on one side only, "
-                  "not raw vibration amplitude, which mostly tracks speed.",
-        "csv": "rail_predictions.csv", "schema": "file_id, prediction",
-        "upload": "Axle-box vibration recording (.csv)", "types": ["csv"],
-        "meta": [("model", "—", None), ("version", "—", None),
-                 ("val score", "—", None), ("split", "stratified by class", None)],
+        "csv": "rail_predictions.csv",
+        "meta": [("model", "HGB + stationary rule", None), ("version", "rail-v1", None),
+                 ("val score", "0.81 macro-F1 (CV)", theme.ACCENT), ("split", "stratified 5-fold ×5", None)],
     },
     "shm": {
         "nav": "SHM", "tag": "1−MAPE", "crumb": "shm", "live": True,
@@ -75,7 +60,7 @@ SUBS = {
     },
 }
 N_LIVE = sum(1 for k, s in SUBS.items() if s["live"] and k != "overview")
-PAGES = {"door": door.render, "shm": shm.render}
+PAGES = {"door": door.render, "shm": shm.render, "acv": acv_page.render, "rail": rail_page.render}
 
 st.session_state.setdefault("view", "door")
 st.session_state.setdefault("batch", False)
