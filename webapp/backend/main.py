@@ -20,7 +20,8 @@ for p in (ROOT, ROOT / "app"):
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 import pandas as pd
 
@@ -517,3 +518,24 @@ def shm_sample():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+# ------------------------------------------------------------------- serve the built frontend --
+
+# In production (Docker/Cloud Run) `webapp/frontend/dist` is the `npm run build` output, built
+# in an earlier container stage. In local dev it won't exist — `npm run dev` (Vite, port 5173)
+# serves the frontend instead and proxies /api to this server, so this block is a no-op then.
+FRONTEND_DIST = ROOT / "webapp" / "frontend" / "dist"
+
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    def spa_fallback(full_path: str):
+        """Any non-API route serves the built index.html, so a direct link or a refresh on
+        whatever view the SPA is showing doesn't 404 — the app itself decides what to render
+        client-side. A path matching an actual built file (e.g. favicon.svg) is served as-is."""
+        candidate = FRONTEND_DIST / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_DIST / "index.html")

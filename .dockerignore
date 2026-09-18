@@ -1,0 +1,17 @@
+data/
+predictions/
+predictions.zip
+*.zip
+.git/
+.claude/
+references/
+Optional_Items/
+node_modules/
+webapp/frontend/dist/
+webapp/frontend/node_modules/
+**/__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+*.local.joblib

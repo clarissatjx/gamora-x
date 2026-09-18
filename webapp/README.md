@@ -54,7 +54,27 @@ npm run dev   # http://localhost:5173, proxies /api to :8000
   than the Streamlit app's hand-written ones — they still correctly reject the file with a 422,
   just less politely worded.
 
+## Deploying (Cloud Run or anywhere Docker runs)
+
+```bash
+docker build -t gamora-cdm .
+docker run -p 8080:8080 gamora-cdm
+```
+
+One image: a Node stage builds the React app, then a Python stage installs `requirements.txt` +
+`webapp/backend/requirements.txt` and serves the built frontend alongside the API from a single
+`uvicorn` process (`webapp/backend/main.py`'s `FRONTEND_DIST` block — mounts `/assets`, falls
+back to `index.html` for any other path so client-side view-switching survives a refresh). No
+separate frontend host, no CORS. Verified locally end-to-end (API, static assets, SPA fallback,
+and a real browser click-through of a sample) before writing this down.
+
+Cloud Run: `gcloud run deploy gamora-cdm --source . --allow-unauthenticated --memory 1Gi` — 1Gi
+because pandas/numpy/scikit-learn plus an xlsx parse (ACV, ~7s) need more than the 512Mi default.
+Cloud Run scales to zero by default, so `subsystems/rail_corrugation/predict.py`'s retrain-on-
+cold-start fallback (a couple of seconds) will fire on the first request after an idle period —
+not a bug, just worth knowing if a demo's first click looks slow.
+
 ## Not done yet
 
-- Deep links / URL routing (`?view=`), single-service deploy (FastAPI serving the built React
-  bundle instead of two dev processes).
+- Deep links / URL routing (`?view=`) — the sidebar is local state, so a shared link always
+  lands on "Get started," not the specific subsystem/result someone meant to share.
