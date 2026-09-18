@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import reliability as rel
 import session
 import theme
 from subsystems.rail_corrugation import config
@@ -69,12 +70,19 @@ def channel_chart(res: dict):
 def prediction_panel(res: dict):
     pred = res["prediction"]
     with theme.panel("Prediction"):
+        if res["stationary_rule_applied"]:
+            st.markdown(
+                f'<div style="font-size:38px;font-weight:700;letter-spacing:-0.02em;line-height:1.05;'
+                f'color:{theme.DIM};margin:6px 0 14px">Inconclusive</div>'
+                f'<p class="gx-prose" style="color:{theme.MUTED}">{res["explanation"]} The prediction '
+                f'file records <b style="color:{theme.BODY}">Normal</b> for this row — every stationary '
+                f'recording in the labelled data was healthy, so that is the best available guess — but '
+                f'this specific recording contains no evidence either way. Re-check this axle box on a '
+                f'recording taken while the train is moving.</p>',
+                unsafe_allow_html=True)
+            return
         st.markdown(f'<div style="font-size:38px;font-weight:700;letter-spacing:-0.02em;line-height:1.05;'
                     f'color:{CLASS_COLOR[pred]};margin:6px 0 14px">{pred}</div>', unsafe_allow_html=True)
-        if res["stationary_rule_applied"]:
-            st.markdown(f'<p class="gx-prose" style="color:{theme.MUTED}">{res["explanation"]}</p>',
-                        unsafe_allow_html=True)
-            return
         rows = ""
         for cls in config.CLASSES:
             p = res["probabilities"][cls]
@@ -83,21 +91,22 @@ def prediction_panel(res: dict):
                      f'<div style="flex:1;height:8px;background:{theme.BG};border-radius:4px;overflow:hidden">'
                      f'<div style="width:{100 * p:.0f}%;height:100%;background:{CLASS_COLOR[cls] if cls == pred else theme.BORDER_STRONG};border-radius:4px"></div></div>'
                      f'<div style="font-family:{theme.MONO};font-size:13px;color:{theme.BODY};width:46px;text-align:right">{p:.0%}</div></div>')
-        st.markdown(rows, unsafe_allow_html=True)
+        st.markdown(rows + (
+            f'<p class="gx-prose" style="margin-top:14px;padding-top:14px;border-top:1px solid {theme.BORDER};'
+            f'color:{theme.MUTED}">{res["explanation"]} Positions 1/3/5/7 sit on the Side I rail, 2/4/6/8 on '
+            f'Side II; the label names the rail whose axle boxes carry the corrugation signature.</p>'),
+            unsafe_allow_html=True)
 
 
 def render(meta: dict, batch: bool = False, evidence: bool = True):
     theme.page_title("Batch run — Rail corrugation" if batch else meta["title"],
                      "Every uploaded recording classified in one pass, with the full prediction CSV ready to "
                      "download." if batch else meta["subtitle"])
+    theme.score_footnote(meta["official"][0], "cross-validation estimate", "0.81 macro-F1")
     st.write("")
-    upload_key = f"rail_upload_{'batch' if batch else 'single'}"
-    files = st.file_uploader("Axle-box vibration recording (.csv)", type=["csv"], accept_multiple_files=batch,
-                             key=upload_key, help="One second at 10 kHz: speed pulse plus 64 axle boxes × vibration and shock.")
-    picked = [f for f in (files if batch else [files]) if f is not None]
-    if picked:
-        st.session_state["rail_files"] = [(f.name, f.getvalue()) for f in picked]
-    uploads = st.session_state.get("rail_files", [])
+    uploads, upload_key = session.file_input(
+        "rail", "Axle-box vibration recording (.csv)", ["csv"], batch,
+        "One second at 10 kHz: speed pulse plus 64 axle boxes × vibration and shock.")
     if not uploads:
         theme.banner("Waiting for a recording. Positions 1/3/5/7 sit on the Side I rail and 2/4/6/8 on Side II; "
                      "corrugation shows up as a vibration signature on one side only. A stationary train is "
@@ -126,14 +135,42 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
                      icon="✓" if not failures else "!", color=theme.ACCENT if not failures else theme.AMBER)
     r0 = results[session.inspect_picker("rail", [r["file_id"] for r in results]) if batch else 0]
     pred = r0["prediction"]
-    conf = "rule" if r0["stationary_rule_applied"] else f"{r0['probabilities'][pred]:.0%}"
+    stationary = r0["stationary_rule_applied"]
+    conf = "rule" if stationary else f"{r0['probabilities'][pred]:.0%}"
     if not batch:
         theme.banner(f"{r0['file_id']} accepted — 129 columns, 10 kHz, 1.0 s window. "
-                     + (r0["explanation"] if r0["stationary_rule_applied"] else f"Classified {pred} with {conf} confidence."),
-                     color=CLASS_COLOR[pred] if pred != "Normal" else theme.ACCENT, icon="!" if pred != "Normal" else "✓")
+                     + (r0["explanation"] if stationary else f"Classified {pred} with {conf} confidence."),
+                     color=theme.DIM if stationary else (CLASS_COLOR[pred] if pred != "Normal" else theme.ACCENT),
+                     icon="?" if stationary else ("!" if pred != "Normal" else "✓"))
+
+    confidence_val = 0.0 if stationary else float(r0["probabilities"][pred])
+    tier = rel.rail_severity(pred, confidence_val, stationary)
+    if stationary:
+        headline, reasoning = "Inconclusive — train was stationary", (
+            "This recording cannot confirm or rule out corrugation: a stopped train produces no "
+            "wheel-rail excitation either way. The submitted prediction defaults to Normal because "
+            "every stationary recording in the labelled data happened to be healthy, not because "
+            "this one was checked.")
+    elif pred == "Normal":
+        headline, reasoning = "No corrugation detected", (
+            f"Vibration and shock across all 64 axle-box channels matched the healthy pattern at "
+            f"{r0['speed_mps'] * 3.6:.0f} km/h, with {r0['probabilities'][pred]:.0%} model confidence.")
+    else:
+        headline, reasoning = f"{pred} corrugation detected", (
+            f"The {pred} rail's axle boxes show a vibration signature distinct from the healthy "
+            f"pattern, {r0['probabilities'][pred]:.0%} confidence — side asymmetry "
+            f"{r0['asym']:+.3f} vs a healthy median near zero.")
+    theme.verdict(headline, tier, rel.TIER_LABEL[tier],
+                 "Unmeasurable" if stationary else rel.confidence_label(confidence_val), reasoning)
+    theme.reliability_panel(
+        "How reliable is this?", rel.RAIL_RELIABILITY_NOTE,
+        [(cls, rel.RAIL_RELIABILITY[cls]["recall"], rel.RAIL_RELIABILITY[cls]["precision"])
+         for cls in ("Side I", "Side II", "Normal")])
 
     theme.metrics([
-        ("Prediction", pred, "stationary rule" if r0["stationary_rule_applied"] else "gradient-boosted classifier", CLASS_COLOR[pred]),
+        ("Prediction", "Inconclusive" if stationary else pred,
+         "stationary rule" if stationary else "gradient-boosted classifier",
+         theme.DIM if stationary else CLASS_COLOR[pred]),
         ("Confidence", conf, "class probability" if conf != "rule" else "no wheel rotation detected", None),
         ("Recording speed", f"{r0['speed_mps'] * 3.6:.0f} km/h", f"{r0['speed_mps']:.1f} m/s from the pulse channel", None),
         ("Side asymmetry", f"{r0['asym']:+.3f}", "Side I − Side II vibration RMS", CLASS_COLOR[pred] if pred != "Normal" else None),
@@ -170,9 +207,9 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
                 "file_id, prediction", footer="only file_id and prediction are submitted; confidence and speed are informational.")
     csv_bytes = preds.to_csv(index=False).encode()
     session.record("rail", meta["csv"], csv_bytes, len(preds), preds.file_id)
-    dl, rs, _ = st.columns([1.1, 0.6, 3])
+    dl, rs, _ = st.columns([0.9, 0.6, 3.5])
     with dl:
-        st.download_button(f"⬇  Download {meta['csv']}", csv_bytes,
+        st.download_button("⬇  Download CSV", csv_bytes,
                            file_name=meta["csv"], mime="text/csv", use_container_width=True)
     if rs.button("Reset", use_container_width=True, key="rail_reset"):
         st.session_state.pop("rail_files", None)

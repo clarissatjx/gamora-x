@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import reliability as rel
 import session
 import theme
 from subsystems.shm.loader import load_series
@@ -63,7 +64,7 @@ def series_chart(x: np.ndarray, res: dict):
     trace = pd.DataFrame({"i": np.arange(0, len(x), step), "stress": x[::step]})
     peaks = pd.DataFrame({"i": _top_excursions(x), "stress": x[_top_excursions(x)]})
     line = alt.Chart(trace).mark_line(strokeWidth=1.0, color=c["accent"]).encode(
-        x=alt.X("i:Q", title="sample", axis=alt.Axis(labels=False, ticks=False, domain=False)),
+        x=alt.X("i:Q", title=None, axis=alt.Axis(labels=False, ticks=False, domain=False)),
         y=alt.Y("stress:Q", title="stress"),
     )
     mean = alt.Chart(pd.DataFrame({"y": [float(x.mean())]})).mark_rule(
@@ -125,16 +126,9 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
         "to download." if batch else meta["subtitle"],
     )
     st.write("")
-    upload_key = f"shm_upload_{'batch' if batch else 'single'}"
-    files = st.file_uploader(
-        "Dynamic stress segment (.csv, one headerless column)", type=["csv"],
-        accept_multiple_files=batch, key=upload_key,
-        help="One measurement point's stress time series. Upload several in Batch mode.",
-    )
-    picked = [f for f in (files if batch else [files]) if f is not None]
-    if picked:
-        st.session_state["shm_files"] = [(f.name, f.getvalue()) for f in picked]
-    uploads = st.session_state.get("shm_files", [])
+    uploads, upload_key = session.file_input(
+        "shm", "Dynamic stress segment (.csv, one headerless column)", ["csv"], batch,
+        "One measurement point's stress time series. Upload several in Batch mode.")
 
     if not uploads:
         theme.banner(
@@ -173,6 +167,25 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
     if not batch:
         theme.banner(f"{name0} accepted — {len(x0):,} samples, {r0['n_reversals']:,} reversals, "
                      f"{r0['n_cycles']:,.0f} rainflow cycles. Damage estimated.")
+
+    peak_abs = float(np.abs(x0).max())
+    if peak_abs > rel.SHM_PLAUSIBLE_ABS_MAX or float(x0.std()) < 1e-6:
+        st.warning(
+            f"{name0}'s stress values (peak {peak_abs:.0f}) fall well outside the range of "
+            "our training files (roughly ±20 to ±55). This may not be an SHM stress segment — "
+            "the damage number below could be meaningless for this file.", icon="⚠️")
+
+    damage = r0["damage"]
+    tier = rel.shm_severity(damage)
+    lo, hi = damage * (1 - rel.SHM_WORST_MAPE), damage * (1 + rel.SHM_WORST_MAPE)
+    theme.verdict(
+        f"Damage {damage:.3f} of 1.0", tier, rel.TIER_LABEL[tier],
+        "Medium" if damage < 0.8 else "High",
+        f"Likely between {lo:.3f} and {hi:.3f} once model error is accounted for "
+        f"(typically ±{rel.SHM_TYPICAL_MAPE:.0%}, worst case observed ±{rel.SHM_WORST_MAPE:.0%}). "
+        "1.0 means the fatigue life at this point is fully used up.",
+    )
+    theme.reliability_panel("How reliable is this?", rel.SHM_RELIABILITY_NOTE)
 
     train_d = b["train_damage"]
     pct = float((train_d < r0["damage"]).mean())
@@ -214,9 +227,9 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
                 footer="prediction is the cumulative fatigue damage; 1.0 = fatigue life consumed.")
     csv_bytes = preds.to_csv(index=False).encode()
     session.record("shm", meta["csv"], csv_bytes, len(preds), preds.file_id)
-    dl, rs, _ = st.columns([1.1, 0.6, 3])
+    dl, rs, _ = st.columns([0.9, 0.6, 3.5])
     with dl:
-        st.download_button(f"⬇  Download {meta['csv']}", csv_bytes,
+        st.download_button("⬇  Download CSV", csv_bytes,
                            file_name=meta["csv"], mime="text/csv", use_container_width=True)
     if rs.button("Reset", use_container_width=True, key="shm_reset"):
         st.session_state.pop("shm_files", None)

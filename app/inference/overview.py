@@ -43,12 +43,21 @@ def render(meta: dict, subs: dict):
         + " · ".join(f"{subs[k]['nav']} {subs[k]['official'][0]}" for k in live if "official" in subs[k])
         + (f" · overall {overall:.3f}." if overall else "."),
     )
+    done = session.results()
     theme.metrics([
-        ("Subsystems attempted", f"{len(live)} / 4", "overall score weights 25% each", None),
-        ("Models loaded", str(len(live)), " · ".join(live), None),
         ("Overall held-out score", f"{overall:.3f}" if overall else "—", "mean of the four leaderboard scores", theme.ACCENT),
+        ("Subsystems attempted", f"{len(live)} / 4", "each weighs 25% of the overall", None),
         ("Test files scored", str(sum(TEST_FILES.values())), TEST_NOTE, None),
+        ("Scored this session", f"{len(done)} / 4",
+         " · ".join(session.NAV[k] for k in session.ZIP_ORDER if k in done) if done else "nothing yet — try a sample",
+         theme.ACCENT if done else None),
     ])
+    st.markdown(
+        f'<div style="font-size:12.5px;color:{theme.FAINT};margin:-8px 0 18px">'
+        f'"Overall" is a plain average of the four scores — the competition\'s own rule — so ACV\'s '
+        f'result on 1 workbook counts the same as Rail\'s on 68 recordings. It is not a measure of '
+        f'how much track or fleet each subsystem actually covers. Open a subsystem for what it gets '
+        f'wrong and how it should change what you do.</div>', unsafe_allow_html=True)
 
     file = st.file_uploader(
         "Drop any sensor file here — the app works out which subsystem it belongs to",
@@ -70,7 +79,9 @@ def render(meta: dict, subs: dict):
         f'<div style="font-size:13.5px;color:{theme.MUTED};margin:-4px 0 18px">'
         f'Detection is by content: an .xlsx is ACV, a header with <span style="font-family:{theme.MONO}">Motor '
         f'current</span> is Door, 129 columns starting with the speed pulse is Rail, one headerless column is SHM. '
-        f'Or pick a subsystem below — each card can also load a bundled sample file.</div>',
+        f'Or pick a subsystem below — each card can also load a bundled sample file. If detection '
+        f'guesses wrong, the page you land on checks the file\'s actual structure and explains why, '
+        f'rather than guessing again.</div>',
         unsafe_allow_html=True)
 
     session.overview_panel()
@@ -79,10 +90,15 @@ def render(meta: dict, subs: dict):
     for col, key in zip(cols, ["door", "acv", "rail", "shm"]):
         s = subs[key]
         official = s.get("official")
-        score_line = (f'<div style="display:flex;justify-content:space-between;font-family:{theme.MONO};'
-                      f'font-size:12px;color:{theme.FAINT};padding-top:10px;border-top:1px solid {theme.BORDER}">'
-                      f'<span>held-out</span><span style="color:{theme.ACCENT}">{official[0]}</span></div>'
-                      if official else "")
+        cv = s.get("cv")
+        score_line = "" if not official else (
+            f'<div style="font-family:{theme.MONO};font-size:12px;color:{theme.FAINT};'
+            f'padding-top:10px;border-top:1px solid {theme.BORDER}">'
+            f'<div style="display:flex;justify-content:space-between">'
+            f'<span>held-out (official)</span><span style="color:{theme.ACCENT}">{official[0]}</span></div>'
+            + (f'<div style="display:flex;justify-content:space-between;margin-top:2px">'
+               f'<span>cross-val (ours)</span><span style="color:{theme.FAINT}">{cv}</span></div>'
+               if cv else "") + '</div>')
         with col:
             st.markdown(
                 f'<div class="gx-card"><div class="gx-card-t"><div class="gx-card-n">{s["nav"]}</div>'

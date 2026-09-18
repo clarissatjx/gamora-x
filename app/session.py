@@ -56,6 +56,37 @@ def use_sample(key: str):
     st.rerun()
 
 
+def file_input(key: str, label: str, types, batch: bool, help: str):
+    """The upload control, which folds itself away once something is loaded.
+
+    A results page is about the result, so a full-height dropzone sitting above it just
+    pushes the answer down the page. Once the stash holds files, the *same* widget (same
+    key, so Streamlit keeps its state) is re-rendered inside a collapsed expander that
+    names what is loaded. Returns `(uploads, upload_key)`; the key is what a page's Reset
+    button has to clear.
+    """
+    stash = f"{key}_files"
+    upload_key = f"{key}_upload_{'batch' if batch else 'single'}"
+    existing = st.session_state.get(stash, [])
+
+    def widget():
+        return st.file_uploader(label, type=types, accept_multiple_files=batch,
+                                key=upload_key, help=help)
+
+    if existing:
+        shown = ", ".join(n for n, _ in existing[:2])
+        more = f" +{len(existing) - 2} more" if len(existing) > 2 else ""
+        with st.expander(f"Loaded: {shown}{more} — click to use a different file", expanded=False):
+            files = widget()
+    else:
+        files = widget()
+
+    picked = [f for f in (files if batch else [files]) if f is not None]
+    if picked:
+        st.session_state[stash] = [(f.name, f.getvalue()) for f in picked]
+    return st.session_state.get(stash, []), upload_key
+
+
 def sample_button(key: str):
     """Offered on a page's empty state: one click loads the bundled file."""
     name, blurb = sample_name(key), SAMPLES[key][1]

@@ -50,6 +50,7 @@ SUBS = {
                     "vibration and shock channels.",
         "csv": "rail_predictions.csv",
         "official": ("0.888", "macro F1, held-out"),
+        "cv": "0.81",
         "meta": [("model", "HGB + stationary rule", None), ("version", "rail-v1", None),
                  ("val score", "0.81 macro-F1 (CV)", theme.ACCENT), ("split", "stratified 5-fold ×5", None)],
     },

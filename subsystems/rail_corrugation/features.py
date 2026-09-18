@@ -15,9 +15,32 @@ from scipy.stats import kurtosis, skew
 from . import config
 
 
+EXPECTED_COLUMNS = 1 + config.N_CARS * config.N_POSITIONS * 2  # speed pulse + 8 cars x 8 positions x {vib, shock}
+
+
 def load_raw_file(path):
-    """Load one raw CSV as a float32 numpy array, shape (10000, 129)."""
-    df = pd.read_csv(path, dtype=np.float32)
+    """Load one raw CSV as a float32 numpy array, shape (~10000, 129).
+
+    Every downstream feature indexes columns positionally (see `_channel_column_indices`),
+    so a file with the wrong column count must fail here with a clear message rather than
+    silently producing a classification from misaligned or out-of-range data.
+    """
+    try:
+        df = pd.read_csv(path, dtype=np.float32)
+    except pd.errors.EmptyDataError:
+        raise ValueError("The file is empty.")
+    except (UnicodeDecodeError, ValueError) as e:
+        raise ValueError(f"Could not read this as a numeric CSV: {e}")
+    if df.shape[1] != EXPECTED_COLUMNS:
+        raise ValueError(
+            f"Expected {EXPECTED_COLUMNS} columns (1 speed pulse + {config.N_CARS} cars x "
+            f"{config.N_POSITIONS} positions x vibration/shock), found {df.shape[1]}. "
+            "This doesn't look like a Rail Corrugation axle-box recording."
+        )
+    if df.isna().any().any():
+        raise ValueError("The file has missing or non-numeric values in a data cell.")
+    if len(df) < 100:
+        raise ValueError(f"Only {len(df)} rows — a 1 s recording at 10 kHz has about 10,000.")
     return df.to_numpy()
 
 

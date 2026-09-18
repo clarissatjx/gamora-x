@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import reliability as rel
 import session
 import theme
 from subsystems.door.loader import CURRENT_COL, POSITION_COL, TIME_COL, load_stream
@@ -73,8 +74,10 @@ def build_chart(df: pd.DataFrame, segs: pd.DataFrame, out: pd.DataFrame) -> alt.
     return theme.style_chart(layered.properties(height=240))
 
 
-def _evidence(out: pd.DataFrame, segs: pd.DataFrame):
-    """Real per-cycle evidence for the most confidently flagged cycle."""
+def _worst_cycle(out: pd.DataFrame):
+    """The most confidently flagged cycle, with its excess current over the healthy peers
+    of the same operation in this file — the basis for both the evidence panel and the
+    file-level severity tier. None if nothing was flagged."""
     feats = out.attrs.get("features")
     if feats is None or not (out.prediction == ABNORMAL).any():
         return None
@@ -84,6 +87,13 @@ def _evidence(out: pd.DataFrame, segs: pd.DataFrame):
     peers = feats[(feats.op == op) & (out.prediction == "Normal").to_numpy()]
     if peers.empty:
         peers = feats[feats.op == op]
+    excess = float(feats.cur_mid.iloc[i] / max(peers.cur_mid.median(), 1e-9) - 1)
+    return {"i": i, "feats": feats, "peers": peers, "excess": excess,
+            "confidence": float(out.confidence.iloc[i])}
+
+
+def _evidence(out: pd.DataFrame, worst: dict):
+    i, feats, peers, excess = worst["i"], worst["feats"], worst["peers"], worst["excess"]
 
     def tile(label, value, baseline, fmt, unit=""):
         return (label, f"{fmt.format(value)}{unit}", f"baseline {fmt.format(baseline)}{unit}",
@@ -95,7 +105,6 @@ def _evidence(out: pd.DataFrame, segs: pd.DataFrame):
              peers.n_rows.median() * SAMPLE_SECONDS, "{:.2f}", " s"),
         tile("Back-EMF, mid-travel", feats.emf_mid.iloc[i], peers.emf_mid.median(), "{:.0f}"),
     ]
-    excess = feats.cur_mid.iloc[i] / max(peers.cur_mid.median(), 1e-9) - 1
     prose = (
         f"Mid-travel motor current on cycle {i + 1} sits {excess:.0%} above the healthy cycles of "
         f"the same operation in this recording, while back-EMF falls — the motor is pushing harder "
@@ -129,20 +138,12 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
     )
     st.write("")
 
-    upload_key = f"door_upload_{'batch' if batch else 'single'}"
-    files = st.file_uploader(
-        "Door controller recording (.csv)", type=["csv"],
-        accept_multiple_files=batch, key=upload_key,
-        help="A continuous recording containing many door open/close cycles back to back.",
-    )
-    picked = [f for f in (files if batch else [files]) if f is not None]
-
-    # A sidebar button calls st.rerun(), which aborts the script before this uploader is
-    # created — Streamlit then drops state for widgets that did not render, so the file
-    # would vanish on every nav/mode change. Keep our own copy of the bytes instead.
-    if picked:
-        st.session_state["door_files"] = [(f.name, f.getvalue()) for f in picked]
-    uploads = st.session_state.get("door_files", [])
+    # The uploader keeps its own copy of the bytes in session state: a sidebar button calls
+    # st.rerun(), which aborts the script before this widget is created, and Streamlit then
+    # drops state for widgets that did not render. See session.file_input.
+    uploads, upload_key = session.file_input(
+        "door", "Door controller recording (.csv)", ["csv"], batch,
+        "A continuous recording containing many door open/close cycles back to back.")
 
     if not uploads:
         theme.banner(
@@ -191,6 +192,25 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
             f"{int(dur // 60)} min {dur % 60:04.1f} s of stream. {len(out0)} cycles detected.",
         )
 
+    worst = _worst_cycle(out0)
+    if n_abn == 0:
+        theme.verdict("All cycles normal", "ok", rel.TIER_LABEL["ok"], "High",
+                     "No cycle in this recording drew more current or less back-EMF than the "
+                     "healthy range for its operation.")
+    else:
+        tier = rel.door_severity(ABNORMAL, worst["excess"], worst["confidence"]) if worst else "inspect"
+        conf = rel.confidence_label(worst["confidence"]) if worst else "Medium"
+        theme.verdict(
+            f"{n_abn} of {len(combined)} cycle{'s' if len(combined) != 1 else ''} show abnormal resistance",
+            tier, rel.TIER_LABEL[tier], conf,
+            (f"The clearest case is cycle {worst['i'] + 1}"
+             + (f" in {name0}" if batch else "")
+             + f", drawing {worst['excess']:.0%} more current than a healthy cycle of the same "
+               "operation while turning slower — consistent with added mechanical resistance."
+             if worst else "Cycles were flagged abnormal; open the evidence panel below for detail."),
+        )
+    theme.reliability_panel("How reliable is this?", rel.DOOR_RELIABILITY_NOTE)
+
     lengths = (segs0.i1 - segs0.i0 + 1) * SAMPLE_SECONDS
     theme.metrics([
         ("Cycles detected", str(len(combined)),
@@ -214,18 +234,16 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
             unsafe_allow_html=True,
         )
 
-    if evidence:
-        ev = _evidence(out0, segs0)
-        if ev:
-            theme.evidence(*ev)
+    if evidence and worst:
+        theme.evidence(*_evidence(out0, worst))
 
     _table(combined, batch)
     csv_bytes = combined[["start_time", "end_time", "prediction", "confidence"]].to_csv(index=False).encode()
     session.record("door", meta["csv"], csv_bytes, len(combined), [p[0] for p in parsed])
-    dl, rs, _ = st.columns([1.1, 0.6, 3])
+    dl, rs, _ = st.columns([0.9, 0.6, 3.5])
     with dl:
         st.download_button(
-            f"⬇  Download {meta['csv']}", csv_bytes,
+            "⬇  Download CSV", csv_bytes,
             file_name=meta["csv"], mime="text/csv", use_container_width=True,
         )
     if rs.button("Reset", use_container_width=True):

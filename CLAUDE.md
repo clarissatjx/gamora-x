@@ -54,6 +54,13 @@ change, re-run the packager so `Optional_Items/*/code` doesn't drift from `subsy
   (the overview zips them as a submission-shaped `predictions.zip`), and the batch
   `inspect_picker`. Deep links are `?view=<key>`; `app.py` syncs `st.query_params` with
   `session_state.view` and only lets the URL win when it differs from what the app last wrote.
+- `app/reliability.py` is the single source of truth for what each model actually gets wrong,
+  for the plain-language `theme.verdict()` / `theme.reliability_panel()` every page shows
+  before its charts. Every number in it is copied from the subsystem's PLAN.md (cited inline)
+  — never invent a recall/precision/error figure here, add it to the PLAN first. Severity/
+  urgency tiers (`door_severity`, `rail_severity`, `shm_severity`, `acv_severity`) ARE new
+  heuristic thresholds with no organiser-supplied standard behind them, and every place they
+  render says so.
 
 ## Gotchas that have bitten
 
@@ -63,7 +70,21 @@ change, re-run the packager so `Optional_Items/*/code` doesn't drift from `subsy
   Streamlit drop their state. Uploads are therefore stashed in `st.session_state["<name>_files"]`
   and pages read from the stash; the overview's content-based routing writes to the same keys.
 - Panels are `st.container(border=True)` matched by an exact parent-chain `:has()` selector,
-  because Streamlit tags *every* vertical block with `stVerticalBlockBorderWrapper`.
+  because Streamlit tags *every* vertical block with `stVerticalBlockBorderWrapper` — on
+  Streamlit 1.37. That testid does not exist on 1.64 (what Cloud currently resolves); 1.64's
+  own default container border is close enough visually that this has not been chased further,
+  but a future pixel-parity pass needs the 1.64 equivalent, not just this selector.
+- Rail's `speed == 0` rule is submitted as `Normal` (matches the labelled data: 38/38
+  stationary training files are Normal) but the **interactive app displays it as
+  "Inconclusive"**, not "Normal" — a stationary train gives no vibration evidence either way,
+  so asserting a clean bill of health would be dishonest even though the submitted label is
+  correct. Never collapse this back to a plain "Normal" display; the CSV output is unaffected
+  either way (`predict_rail`/`predict_rail_detailed` still return "Normal").
+- `subsystems/rail_corrugation/features.py::load_raw_file` and
+  `subsystems/acv/features.py::load_case` reject malformed uploads (wrong column count / too
+  few cars) with a clear `ValueError` rather than silently producing a confident-looking
+  result from garbage — this is the real defence against a wrong file fooling the overview's
+  content-based router, which only guesses. Do not weaken these checks to "be more lenient".
 - `subsystems/rail_corrugation/artifacts/rail_model.joblib` is version-fragile in both
   directions: on numpy 1.x it fails to unpickle, and on scikit-learn 1.9.1 it unpickles fine
   but raises on the first `predict_proba`. `predict.load_artifact` therefore smoke-tests every

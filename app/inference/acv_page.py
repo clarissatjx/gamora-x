@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import reliability as rel
 import session
 import theme
 from inference.acv import DEFAULT_METHOD
@@ -99,13 +100,9 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
     theme.page_title("Batch run — ACV" if batch else meta["title"],
                      "Every uploaded case workbook ranked in one pass." if batch else meta["subtitle"])
     st.write("")
-    upload_key = f"acv_upload_{'batch' if batch else 'single'}"
-    files = st.file_uploader("ACV telemetry workbook (.xlsx)", type=["xlsx"], accept_multiple_files=batch,
-                             key=upload_key, help="One train's ACV telemetry for all 8 cars, sampled every 30 s.")
-    picked = [f for f in (files if batch else [files]) if f is not None]
-    if picked:
-        st.session_state["acv_files"] = [(f.name, f.getvalue()) for f in picked]
-    uploads = st.session_state.get("acv_files", [])
+    uploads, upload_key = session.file_input(
+        "acv", "ACV telemetry workbook (.xlsx)", ["xlsx"], batch,
+        "One train's ACV telemetry for all 8 cars, sampled every 30 s.")
     if not uploads:
         theme.banner("Waiting for a workbook. Each car is compared with its 7 neighbours on the same train: a "
                      "unit losing refrigerant cannot pull its cabin down to the cooling setpoint, and that gap "
@@ -141,6 +138,19 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
                      f"{r0['hours']:.1f} h. Ranking complete: car {top} most likely faulty.")
 
     gap_top = r0["gap"].get(top, np.nan)
+    tier = rel.acv_severity(gap_top, margin)
+    conf = "Low" if margin < 0.3 else ("Medium" if margin < 1.0 else "High")
+    theme.verdict(
+        f"Car {top} most likely faulty", tier, rel.TIER_LABEL[tier], conf,
+        (f"Car {top} runs {gap_top:+.2f} °C above its cooling setpoint while other cars stay "
+         f"near zero — the signature of lost refrigerant charge — and scores {margin:.2f} clear "
+         f"of car {runner}, the next candidate." if not np.isnan(gap_top) else
+         f"No cabin-temperature reading was available for car {top} in this file; the ranking "
+         f"falls back to a peer-deviation score across the other telemetry, {margin:.2f} clear "
+         f"of car {runner}."),
+    )
+    theme.reliability_panel("How reliable is this?", rel.ACV_RELIABILITY_NOTE)
+
     theme.metrics([
         ("Most likely faulty", f"Car {top}", f"blend score {r0['scores'].iloc[0]:+.2f}", theme.RED),
         ("Cars evaluated", str(len(r0["ranked"])), "IDs read from column headers", None),
@@ -190,9 +200,9 @@ def render(meta: dict, batch: bool = False, evidence: bool = True):
                 "file_id, ranked_cars", footer="ranked_cars uses each car's ID exactly as it appears in the workbook headers.")
     csv_bytes = preds.to_csv(index=False).encode()
     session.record("acv", meta["csv"], csv_bytes, len(preds), preds.file_id)
-    dl, rs, _ = st.columns([1.1, 0.6, 3])
+    dl, rs, _ = st.columns([0.9, 0.6, 3.5])
     with dl:
-        st.download_button(f"⬇  Download {meta['csv']}", csv_bytes,
+        st.download_button("⬇  Download CSV", csv_bytes,
                            file_name=meta["csv"], mime="text/csv", use_container_width=True)
     if rs.button("Reset", use_container_width=True, key="acv_reset"):
         st.session_state.pop("acv_files", None)

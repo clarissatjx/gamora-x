@@ -99,6 +99,12 @@ def load_case(filepath: str) -> pd.DataFrame:
 
     if not car_cols:
         raise ValueError(f"{filepath}: no 'Car NN - <param>' columns found")
+    n_cars_found = len({cid for _, cid, _ in car_cols})
+    if n_cars_found < 2:
+        raise ValueError(
+            f"{filepath}: found telemetry for only {n_cars_found} car — ranking needs at "
+            "least 2 cars on the same train to compare against each other."
+        )
     if unmatched:
         # Not fatal -- just means this file has some metadata column we
         # don't recognise yet. Surface it rather than silently drop it.

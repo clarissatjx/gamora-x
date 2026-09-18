@@ -81,6 +81,20 @@ html, body, [data-testid="stAppViewContainer"] {{
 [data-testid="stDecoration"] {{ display:none; }}
 footer, #MainMenu {{ visibility:hidden; }}
 .block-container {{ padding:0 28px 56px 28px; max-width:1320px; }}
+/* One vertical rhythm for the whole page: Streamlit's own block gap plus each element's
+   margin-bottom used to add up to 22px, 30px or 38px depending on what sat next to what. */
+.block-container > div > [data-testid="stVerticalBlock"] {{ gap:0.5rem; }}
+/* Side-by-side panels end level with each other instead of raggedly. The columns already
+   stretch to the tallest, but each column is `display:block`, so a `flex:1` anywhere inside
+   it has nothing to act on — the chain has to be flex the whole way down to the panel. The
+   column's test id is "column" up to Streamlit 1.3x and "stColumn" after, hence both.
+   Never set `flex` on the column itself: that is what carries its width. */
+.block-container [data-testid="stHorizontalBlock"] {{ align-items:stretch; }}
+.block-container [data-testid="column"],
+.block-container [data-testid="stColumn"] {{ display:flex; flex-direction:column; }}
+.block-container [data-testid="column"] [data-testid="stVerticalBlockBorderWrapper"],
+.block-container [data-testid="stColumn"] [data-testid="stVerticalBlockBorderWrapper"] {{
+    display:flex; flex-direction:column; flex:1; }}
 ::-webkit-scrollbar {{ width:9px; height:9px; }}
 ::-webkit-scrollbar-thumb {{ background:{GRID}; border-radius:6px; }}
 a {{ color:{ACCENT}; text-decoration:none; }}
@@ -140,17 +154,17 @@ p, span, div, label, li {{ color:inherit; }}
 .gx-dot {{ width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:6px; }}
 
 .gx-h1 {{ margin:0 0 4px; font-size:27px; font-weight:700; letter-spacing:-0.02em; color:{TEXT}; }}
-.gx-sub {{ margin:0; color:{MUTED}; font-size:14.5px; max-width:64ch; }}
+.gx-sub {{ margin:0 0 18px; color:{MUTED}; font-size:14.5px; max-width:64ch; }}
 
 .gx-banner {{ display:flex; gap:14px; align-items:center; background:{PANEL};
     border:1px solid {BORDER}; border-left:3px solid {ACCENT}; border-radius:8px;
-    padding:13px 16px; margin-bottom:22px; box-shadow:var(--gx-shadow); }}
+    padding:13px 16px; margin-bottom:14px; box-shadow:var(--gx-shadow); }}
 .gx-banner-i {{ font-family:{MONO}; font-size:13px; color:{ACCENT}; flex-shrink:0; }}
 .gx-banner-t {{ font-size:13.5px; color:{BODY}; }}
 
 /* ---------------- metric cards ---------------- */
 .gx-metrics {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:14px; margin-bottom:22px; }}
+    gap:14px; margin-bottom:14px; }}
 .gx-metric {{ background:{PANEL}; border:1px solid {BORDER}; border-radius:8px;
     padding:15px 17px; box-shadow:var(--gx-shadow); }}
 .gx-metric-l {{ font-size:12.5px; color:{MUTED}; text-transform:uppercase; letter-spacing:0.06em;
@@ -167,7 +181,8 @@ p, span, div, label, li {{ color:inherit; }}
     > div > [data-testid="stVerticalBlock"] > [data-testid="element-container"]
     > [data-testid="stMarkdown"] > [data-testid="stMarkdownContainer"] > div > .gx-panel-h) {{
     background:{PANEL}; border:1px solid {BORDER}; border-radius:9px;
-    padding:18px 20px 14px 20px; margin-bottom:22px; box-shadow:var(--gx-shadow); }}
+    padding:18px 20px 16px 20px; margin-bottom:14px; box-shadow:var(--gx-shadow);
+    display:flex; flex-direction:column; box-sizing:border-box; }}
 .gx-panel-h {{ font-size:15.5px; font-weight:600; color:{TEXT}; }}
 .gx-panel-s {{ font-size:13px; color:{MUTED}; margin-top:2px; }}
 .gx-axis {{ display:flex; justify-content:space-between; font-family:{MONO};
@@ -203,7 +218,7 @@ table.gx tbody td {{ padding:9px 14px; color:{BODY}; border-bottom:1px solid {BO
 .gx-card-n {{ font-size:16px; font-weight:700; color:{TEXT}; }}
 .gx-chip {{ font-family:{MONO}; font-size:11.5px; color:{ACCENT}; background:{BG};
     border:1px solid {BORDER}; border-radius:20px; padding:3px 9px; white-space:nowrap; }}
-.gx-card-task {{ font-size:13.5px; color:{MUTED}; flex:1; }}
+.gx-card-task {{ font-size:13.5px; color:{MUTED}; flex:1; min-height:60px; }}
 .gx-card-out {{ font-family:{MONO}; font-size:12px; color:{FAINT}; padding-top:10px;
     border-top:1px solid {BORDER}; }}
 
@@ -228,16 +243,37 @@ table.gx tbody td {{ padding:9px 14px; color:{BODY}; border-bottom:1px solid {BO
 [data-testid="stTooltipIcon"] svg {{ fill:{FAINT}; }}
 [data-testid="stDownloadButton"] button {{
     background:{ACCENT}; border:1px solid {ACCENT}; color:{ACCENT_INK}; border-radius:7px;
-    padding:9px 16px; font-family:{SANS}; font-size:13.5px; font-weight:600; }}
+    padding:9px 16px; font-family:{SANS}; font-size:13.5px; font-weight:600; min-height:40px; }}
+/* Long labels used to wrap and leave the primary button taller than the one beside it. */
+[data-testid="stDownloadButton"] button p, .block-container .stButton button p {{
+    white-space:nowrap; margin:0; }}
 [data-testid="stDownloadButton"] button:hover {{
     background:{ACCENT_HOVER}; border-color:{ACCENT_HOVER}; color:{ACCENT_INK}; }}
 .block-container .stButton button {{
     background:transparent; border:1px solid {BORDER_STRONG}; color:{BODY};
-    border-radius:7px; padding:9px 15px; font-family:{SANS}; font-size:13.5px; }}
+    border-radius:7px; padding:9px 15px; font-family:{SANS}; font-size:13.5px;
+    min-height:40px; }}
 .block-container .stButton button:hover {{ border-color:{BORDER_HOVER}; color:{TEXT}; }}
 [data-testid="stAlert"] {{ border-radius:8px; font-size:13.5px;
     background:{PANEL}; border:1px solid {BORDER}; color:{BODY}; }}
 [data-testid="stAlert"] p {{ color:{BODY}; }}
+
+/* Collapsed uploader (see session.file_input) — reads as a quiet status line, not a control. */
+[data-testid="stExpander"] {{ margin-bottom:14px; }}
+[data-testid="stExpander"] details {{ background:{PANEL}; border:1px solid {BORDER};
+    border-radius:8px; box-shadow:var(--gx-shadow); }}
+[data-testid="stExpander"] summary {{ padding:10px 16px; font-size:13px; color:{MUTED};
+    font-family:{MONO}; }}
+[data-testid="stExpander"] summary:hover {{ color:{ACCENT}; }}
+[data-testid="stExpander"] summary p {{ font-size:13px; font-family:{MONO}; }}
+[data-testid="stExpander"] summary svg {{ fill:{FAINT}; }}
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] {{ padding:0 16px 14px 16px; }}
+
+/* Selectbox (batch file picker) */
+[data-baseweb="select"] > div {{ background:{PANEL}; border:1px solid {BORDER_STRONG};
+    border-radius:7px; font-family:{MONO}; font-size:13px; color:{BODY}; }}
+[data-baseweb="select"] > div:hover {{ border-color:{ACCENT}; }}
+[data-baseweb="popover"] li {{ font-family:{MONO}; font-size:13px; }}
 """
 
 
@@ -334,6 +370,68 @@ def pill(text: str, color: str) -> str:
             f'border:1px solid color-mix(in srgb, {color} 30%, transparent);'
             f'background:color-mix(in srgb, {color} 12%, transparent);border-radius:20px;'
             f'padding:3px 9px;white-space:nowrap">{text}</span>')
+
+
+TIER_COLOR = {"ok": "green", "monitor": "amber", "inspect": "amber", "act": "red", "unknown": "dim"}
+
+
+def verdict(headline: str, tier: str, tier_label: str, confidence_label: str, reasoning: str):
+    """The plain-language answer, read top to bottom before any chart or metric: what
+    happened, how urgent, how sure, why. `tier` selects the colour from TIER_COLOR."""
+    color_name = TIER_COLOR.get(tier, "dim")
+    color = {"green": GREEN, "amber": AMBER, "red": RED, "dim": DIM}[color_name]
+    with panel(""):
+        st.markdown(
+            f'<div style="display:flex;flex-wrap:wrap;justify-content:space-between;'
+            f'align-items:flex-start;gap:16px;margin-top:-4px">'
+            f'<div style="flex:1;min-width:220px">'
+            f'<div style="font-size:12.5px;color:{MUTED};text-transform:uppercase;'
+            f'letter-spacing:0.06em;font-weight:600;margin-bottom:6px">Result</div>'
+            f'<div style="font-size:26px;font-weight:700;letter-spacing:-0.01em;'
+            f'color:{color};line-height:1.15">{headline}</div></div>'
+            f'<div style="display:flex;gap:10px;flex-wrap:wrap">'
+            f'{pill(tier_label, color)}'
+            f'{pill(f"Confidence: {confidence_label}", FAINT)}'
+            f'</div></div>'
+            f'<p class="gx-prose" style="margin-top:14px;padding-top:14px;'
+            f'border-top:1px solid {BORDER};color:{BODY}">{reasoning}</p>',
+            unsafe_allow_html=True,
+        )
+
+
+def reliability_panel(title: str, note: str, lines=None):
+    """How trustworthy the model has actually been, in the caller's own words plus optional
+    per-class recall/precision bars. Sits right under the verdict, not buried in an expander,
+    because a maintenance manager needs this before deciding whether to act."""
+    with panel(title):
+        if lines:
+            body = ""
+            for label, recall, precision in lines:
+                body += (
+                    f'<div style="margin-bottom:12px">'
+                    f'<div style="display:flex;justify-content:space-between;font-size:13px;'
+                    f'color:{BODY};margin-bottom:4px"><span>{label}</span>'
+                    f'<span style="font-family:{MONO};color:{FAINT}">'
+                    f'catches {recall:.0%} · right when flagged {precision:.0%}</span></div>'
+                    f'<div style="display:flex;gap:3px;height:7px">'
+                    f'<div style="flex:{max(recall,0.02)};background:{ACCENT};border-radius:3px"></div>'
+                    f'<div style="flex:{max(1 - recall, 0.02)};background:{IDLE_BAR};border-radius:3px"></div>'
+                    f'</div></div>'
+                )
+            st.markdown(f'<div>{body}</div>', unsafe_allow_html=True)
+        st.markdown(f'<p class="gx-prose" style="color:{MUTED};margin-top:2px">{note}</p>',
+                    unsafe_allow_html=True)
+
+
+def score_footnote(held_out: str, cv_label: str, cv_value: str):
+    """Both numbers side by side with a one-line reason they can differ — shown wherever a
+    held-out score and an internal validation score might otherwise look like a typo."""
+    st.markdown(
+        f'<div style="font-size:12.5px;color:{FAINT};margin:-6px 0 18px">'
+        f'Official held-out score <b style="color:{ACCENT}">{held_out}</b> vs our own '
+        f'{cv_label} <b style="color:{TEXT}">{cv_value}</b> — the two are measured on '
+        f'different files and can legitimately disagree; see "How reliable is this?" below.'
+        f'</div>', unsafe_allow_html=True)
 
 
 def evidence(title: str, tiles, prose: str):
