@@ -58,9 +58,12 @@ change, re-run the packager so `Optional_Items/*/code` doesn't drift from `subsy
   and pages read from the stash; the overview's content-based routing writes to the same keys.
 - Panels are `st.container(border=True)` matched by an exact parent-chain `:has()` selector,
   because Streamlit tags *every* vertical block with `stVerticalBlockBorderWrapper`.
-- `subsystems/rail_corrugation/artifacts/rail_model.joblib` is a numpy-2 pickle; on numpy 1.x
-  `predict.load_artifact` retrains from the cached feature table (deterministic, reproduces the
-  submitted predictions) into an untracked `*.local.joblib`.
+- `subsystems/rail_corrugation/artifacts/rail_model.joblib` is version-fragile in both
+  directions: on numpy 1.x it fails to unpickle, and on scikit-learn 1.9.1 it unpickles fine
+  but raises on the first `predict_proba`. `predict.load_artifact` therefore smoke-tests every
+  candidate with a real prediction (`_usable`) and retrains from the cached feature table
+  (deterministic, ~2 s, reproduces the submitted predictions on all 68 test files) into an
+  untracked `*.local.joblib`. Do not narrow that check back to catching unpickling errors.
 - Rail's shock channels carry a DC offset that looks like sensor bias — leave it in; demeaning
   costs 0.044 macro F1. Rail is at a measured local optimum (12 rejected alternatives); do not
   spend time re-tuning it.

@@ -34,14 +34,33 @@ STATIONARY_REASON = (
 )
 
 
+def _usable(artifact) -> bool:
+    """Smoke-test a loaded artifact by actually predicting with it.
+
+    Unpickling cleanly is not enough. The committed artifact was pickled under
+    scikit-learn 1.9.0; 1.9.1 unpickles it without complaint and then raises
+    `AttributeError: 'HistGradientBoostingClassifier' object has no attribute
+    '_preprocessor'` on the first `predict_proba`. Checking only for an unpickling
+    exception would let that through and fail later, in front of a user.
+    """
+    try:
+        cols = artifact["feature_cols"]
+        artifact["model"].predict_proba(np.zeros((1, len(cols)), dtype=np.float64))
+        return True
+    except Exception:  # noqa: BLE001 - any failure here means "retrain instead"
+        return False
+
+
 def load_artifact(path=ARTIFACT_PATH):
     """Load (and cache) the trained model, so repeated calls don't reload it from disk.
 
-    The committed artifact was pickled under numpy 2; on numpy 1.x it fails to unpickle
-    (`PCG64 is not a known BitGenerator`). Training is deterministic and takes ~5 s from the
-    cached feature table, and a local retrain reproduces the submitted predictions exactly
-    (verified on all 68 test files), so fall back to that, saved beside the artifact as an
-    untracked *.local.joblib.
+    The committed artifact is version-fragile in both directions: pickled under numpy 2 it
+    fails to unpickle on numpy 1.x (`PCG64 is not a known BitGenerator`), and pickled under
+    scikit-learn 1.9.0 it unpickles but cannot predict on 1.9.1. Rather than pin the
+    environment, each candidate is smoke-tested and an unusable one is retrained from the cached
+    feature table -- deterministic, ~2 s, and it reproduces the submitted predictions exactly
+    (verified on all 68 test files). The retrain is saved beside the artifact as an untracked
+    *.local.joblib.
     """
     global _ARTIFACT
     if _ARTIFACT is None:
@@ -51,9 +70,15 @@ def load_artifact(path=ARTIFACT_PATH):
                 "python -m subsystems.rail_corrugation.train_final"
             )
         local = path.with_suffix(".local.joblib")
-        try:
-            _ARTIFACT = joblib.load(local if local.exists() else path)
-        except Exception:  # noqa: BLE001 - cross-version pickle; retrain rather than fail
+        for candidate_path in ([local] if local.exists() else []) + [path]:
+            try:
+                candidate = joblib.load(candidate_path)
+            except Exception:  # noqa: BLE001 - cross-version pickle
+                continue
+            if _usable(candidate):
+                _ARTIFACT = candidate
+                break
+        else:
             from .train_final import train_and_save
             _ARTIFACT, _ = train_and_save(path=local)
     return _ARTIFACT
