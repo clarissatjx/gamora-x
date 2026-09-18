@@ -1,0 +1,9 @@
+data/
+*.zip
+predictions/
+*.pyc
+__pycache__/
+.venv/
+venv/
+.DS_Store
+*.egg-info/
