@@ -59,23 +59,20 @@ export default function RailPage() {
     <div>
       <h1 className="gx-h1">Rail Corrugation — 3-class classification</h1>
       <p className="gx-sub">
-        One-second axle-box recording classified Normal, Side I or Side II from 64 vibration
-        and shock channels.
+        Classifies a one-second axle-box recording Normal, Side I or Side II from 64
+        vibration and shock channels.
       </p>
       <div className="gx-footnote">
         Official <Term term="held-out">held-out</Term> score <b style={{ color: COLORS.accent }}>0.888</b> vs our own
-        <Term term="cross-validation"> cross-validation</Term> estimate <b style={{ color: COLORS.text }}>0.81 <Term term="macro-F1">macro-F1</Term></b> — the two
-        are measured on different files and can legitimately disagree; see
-        &ldquo;How reliable is this?&rdquo; below.
+        <Term term="cross-validation"> cross-validation</Term> estimate <b style={{ color: COLORS.text }}>0.81 <Term term="macro-F1">macro-F1</Term></b> — measured
+        on different files, so the two can disagree; see &ldquo;How reliable is this?&rdquo; below.
       </div>
 
       {!result && (
         <>
           <Banner
             icon="⬆"
-            text="Waiting for a recording. Positions 1/3/5/7 sit on the Side I rail and 2/4/6/8 on
-              Side II; corrugation shows up as a vibration signature on one side only. A
-              stationary train is reported Normal by rule — it cannot generate the excitation."
+            text="Positions 1/3/5/7 sit on the Side I rail, 2/4/6/8 on Side II — corrugation shows up as a vibration signature on one side only. A stationary train can't generate that signature, so this app reads it Inconclusive (the submitted label is still Normal)."
           />
           <Dropzone
             label="Drop an axle-box recording (.csv)"

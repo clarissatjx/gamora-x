@@ -3,7 +3,7 @@ import { GLOSSARY } from '../glossary';
 
 // A dotted-underline span that reveals a plain-language definition on hover/focus. Falls back
 // to plain text if the term isn't in the glossary, so callers don't need to guard for it.
-export default function Term({ term, className = '', children }) {
+export default function Term({ term, className = '', style, children }) {
   const [open, setOpen] = useState(false);
   const def = GLOSSARY[term];
   if (!def) return <>{children}</>;
@@ -11,6 +11,7 @@ export default function Term({ term, className = '', children }) {
   return (
     <span
       className={`gx-term ${className}`.trim()}
+      style={style}
       tabIndex={0}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}

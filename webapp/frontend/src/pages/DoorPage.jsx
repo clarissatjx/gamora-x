@@ -59,7 +59,7 @@ export default function DoorPage() {
     <div>
       <h1 className="gx-h1">Door — cycle detection &amp; classification</h1>
       <p className="gx-sub">
-        Continuous stream segmented into door open/close cycles, each classified Normal or
+        Segments a continuous stream into open/close cycles, classifies each Normal or
         Abnormal resistance.
       </p>
 
@@ -67,9 +67,7 @@ export default function DoorPage() {
         <>
           <Banner
             icon="⬆"
-            text="Waiting for a recording. The model finds each open/close cycle on its own — you
-              don't need to split the file up. Every cycle it finds is scored, charted and listed
-              below, ready to download as a CSV."
+            text="Drop a recording — cycles are found, scored and charted automatically. No need to split the file up first."
           />
           <Dropzone
             label="Drop a door controller recording (.csv)"

@@ -53,7 +53,7 @@ export default function ShmPage() {
     <div>
       <h1 className="gx-h1">SHM — cumulative fatigue damage</h1>
       <p className="gx-sub">
-        Dynamic stress series reduced to a single cumulative damage value via rainflow counting
+        Reduces a dynamic stress series to one cumulative damage value via rainflow counting
         and a calibrated Miner&rsquo;s-rule sum.
       </p>
 
@@ -61,9 +61,7 @@ export default function ShmPage() {
         <>
           <Banner
             icon="⬆"
-            text="Waiting for a stress segment. The model counts every load cycle in the
-              recording with rainflow counting, sums their fatigue contribution, and reports a
-              single cumulative-damage number — 1.0 would mean the fatigue life is used up."
+            text="Counts every load cycle with rainflow counting and sums the fatigue contribution — 1.0 means the fatigue life is used up."
           />
           <Dropzone
             label="Drop a dynamic stress segment (.csv, one headerless column)"

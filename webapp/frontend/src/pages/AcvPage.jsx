@@ -55,17 +55,14 @@ export default function AcvPage() {
     <div>
       <h1 className="gx-h1">ACV — refrigerant leak localisation</h1>
       <p className="gx-sub">
-        Every car in the uploaded file ranked from most to least likely to carry the
-        refrigerant leak.
+        Ranks every car from most to least likely to carry the refrigerant leak.
       </p>
 
       {!result && (
         <>
           <Banner
             icon="⬆"
-            text="Waiting for a workbook. Each car is compared with its 7 neighbours on the same
-              train: a unit losing refrigerant cannot pull its cabin down to the cooling setpoint,
-              and that gap is what the ranking is built on."
+            text="Each car is compared with its 7 neighbours: a unit losing refrigerant can't pull its cabin down to the cooling setpoint, and that gap drives the ranking."
           />
           <Dropzone
             label="Drop an ACV telemetry workbook (.xlsx)"

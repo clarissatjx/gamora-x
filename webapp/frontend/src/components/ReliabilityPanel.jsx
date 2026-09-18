@@ -11,8 +11,9 @@ export default function ReliabilityPanel({ title, note, lines }) {
         <div className="gx-rel-row" key={label}>
           <div className="gx-rel-row-head">
             <span>{label}</span>
-            <span className="mono" style={{ color: COLORS.faint }}>
-              catches {(recall * 100).toFixed(0)}% · right when flagged {(precision * 100).toFixed(0)}%
+            <span className="gx-rel-row-stat">
+              <span>catches {(recall * 100).toFixed(0)}%</span>
+              <span>right when flagged {(precision * 100).toFixed(0)}%</span>
             </span>
           </div>
           <div className="gx-rel-bar">
