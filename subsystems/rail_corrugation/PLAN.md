@@ -8,6 +8,11 @@ on top of an earlier one until you've signed off.
 Code lives in `subsystems/rail_corrugation/`. Data lives at
 `data/data/Rail_Corrugation/{Train,Test}/` + `Train_Labels.csv`.
 
+**Scope: this subsystem only — the model, and the `rail_predictions.csv` it produces.**
+The shared app is explicitly **not** part of this work and is owned elsewhere. What this
+subsystem owes any integrator is a clean importable inference function (Phase 6); wiring it
+into anything is someone else's call.
+
 ---
 
 ## Phase 0 — Data audit (done)
@@ -462,28 +467,59 @@ lucky seed being promoted.
 - Judgment call: accept "ship the baseline" and move to Phases 6–7, or is there a variant
   you want tested that I haven't covered?
 
-**Stop point — what to check and how:**
-- I'll present a small comparison table (variant → mean CV macro F1 ± std across folds).
-- You pick which variant we ship, or ask for another variant — this is a judgment call,
-  not something I'll decide unilaterally, since it's exactly the kind of choice the
-  write-up needs to justify.
-
 ---
 
-## Phase 6 — Reusable inference function
+## Phase 6 — Reusable inference function (DONE, pending your check)
 
-Plan: `predict.py` exposing `predict_rail(file_path) -> "Normal"/"Side I"/"Side II"`
-(loads the trained model artifact once, wraps feature extraction), so the same function
-can be imported by both the shared Streamlit app and a batch script — per the
-submission constraint that inference logic must not be forked.
+Files: `train_final.py` (fits variant A on all 233 rows, saves
+`artifacts/rail_model.joblib`, 723 KB), `predict.py` (the single inference path),
+`verify_inference.py` (correctness checks).
+
+### The interface a teammate imports
+
+```python
+from subsystems.rail_corrugation.predict import predict_rail, predict_rail_detailed
+
+predict_rail(source)           # -> "Normal" | "Side I" | "Side II"
+predict_rail_detailed(source)  # -> dict: prediction, speed_mps, probabilities,
+                               #    stationary_rule_applied, explanation
+predict_directory(path)        # -> DataFrame in exact rail_predictions.csv schema
+```
+
+`source` is a path **or any file-like object**, so a caller holding an uploaded file can pass
+it straight through without writing it to disk. The model artifact is cached at module
+level, so it loads once rather than per call.
+
+`predict_rail_detailed` returns class probabilities, the derived train speed, and a
+plain-English `explanation` alongside the label — including when the stationary rule fired
+instead of the model. Whoever consumes this subsystem can surface as much or as little of
+that as they need; `predict_rail` is the minimal label-only contract.
+
+The **`speed == 0 ⇒ Normal` rule lives inside this path**, so every caller gets it
+automatically and no two callers can diverge. The feature column list is saved *inside* the
+artifact, so inference can't silently reorder columns relative to training.
+
+A CLI is also provided (`--input` / `--output`), covering the `predict.py` interface the
+Info Kit mentions, in case the organisers do require it — see the open question in the
+repo-level PLANNING.md about whether that's actually compulsory.
+
+### Verification (`verify_inference.py`)
+
+1. **Feature parity** — features rebuilt through the inference path match the cached
+   training table to **4.5e-13** (pure float/CSV round-off). This is the check that catches
+   the classic "features built differently at inference than at training" bug.
+2. **End-to-end** on one file per class: Normal→Normal, Side I→Side I, Side II→Side II,
+   stationary→Normal via the rule. *These files were in training, so this verifies plumbing,
+   not accuracy — the honest accuracy number remains the CV macro F1 of 0.806.*
+3. **Stationary rule fires** and returns no probabilities, as designed.
+4. **File-handle input** gives the same answer as a path.
 
 **Stop point — what to check and how:**
-- I'll run it against a few known-label train files (held out from training, e.g. one
-  fold's validation files) and show predicted vs. actual label.
-- Check the function signature is something a teammate could import into
-  `app/inference/rail.py` without modification — flag now if you want a different
-  call shape (e.g. accepting a DataFrame instead of a path) before it's wired into the
-  app.
+- Run `python -m subsystems.rail_corrugation.verify_inference` — it asserts, so a clean pass
+  means the guarantees hold.
+- Review the interface above: is this the call shape you want to hand to whoever integrates
+  this subsystem? Flag now — changing it after other code depends on it is more disruptive.
+- Try the CLI: `python -m subsystems.rail_corrugation.predict --input <a test file>`.
 
 ---
 
@@ -509,8 +545,8 @@ Plan: run `predict_rail` over every file in `Test/` (68 files), write
       (AUC 0.92), weak on Side I (AUC 0.69)
 - [x] **Stationary files (38 train / 9 test, all Normal): excluded from model training,
       handled by an explicit `speed == 0 ⇒ Normal` rule at inference**
-- [x] Duplicate raw files: `Train107`==`Train115` forced into the same CV fold;
-      `Train165`==`Train187` removed automatically as stationary
+- [x] Duplicate raw files: `Train115` dropped outright (byte-identical to `Train107`, so
+      zero information lost); `Train165`==`Train187` removed automatically as stationary
 - [x] Stratified k-fold (k=5) **by label alone** — the stationary dimension is constant
       once stationary rows are excluded
 - [x] Two degenerate features dropped (`asym_{diff,ratio}_shock_dominant_wavelength_m_max`),
