@@ -2,15 +2,13 @@
 ACV inference module -- the single source of truth for turning one raw ACV
 case file into a ranked-car prediction.
 
-This is what the future shared Streamlit app (``app/app.py``, not yet built)
-will import to serve on-screen predictions, and it's also what the batch CLI
-script (``subsystems/acv/predict.py``) imports to regenerate
-``acv_predictions.csv``. Neither caller reimplements feature extraction or
-ranking -- both just chain the Checkpoint A building blocks:
-``features.load_case`` -> ``features.extract_features`` ->
-``rank.score_cars(method="heuristic")`` (fixed-prior weights; see the
-Checkpoint A LOOCV verdict in ``subsystems/acv/evaluate.py`` for why no
-per-inference fold-fitting happens here).
+Both the app page (``app/inference/acv_page.py``) and the batch CLI
+(``subsystems/acv/predict.py``) import from here, so neither reimplements
+feature extraction or ranking. This module stays Streamlit-free so the CLI
+can import it without the app's dependencies. The chain is
+``features.load_case`` -> ``features.extract_features`` -> ``rank.physics_gap``
+-> ``rank.score_cars(method=DEFAULT_METHOD)``; see ``subsystems/acv/PLAN.md``
+for how the default was chosen.
 """
 
 from __future__ import annotations

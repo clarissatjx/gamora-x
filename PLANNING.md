@@ -1,5 +1,12 @@
 # NebulaX Hackathon — PS3: Train Condition Monitoring — Planning Doc
 
+> **Status (end of 2026-09-18): all four subsystems built, scored and wired into the app.**
+> This document is the original kickoff plan, kept for the record. Current state lives in
+> [README.md](README.md); per-subsystem methods, numbers and decisions live in
+> [subsystems/door/PLAN.md](subsystems/door/PLAN.md), [subsystems/acv/PLAN.md](subsystems/acv/PLAN.md),
+> [subsystems/rail_corrugation/PLAN.md](subsystems/rail_corrugation/PLAN.md) and
+> [subsystems/shm/PLAN.md](subsystems/shm/PLAN.md). Official scores are in §9b below.
+
 Team: **gamora-x** (4 people)
 Problem statement source: [NebulaX-Hackathon-ProblemStatement/PS3](https://github.com/aochinwen/NebulaX-Hackathon-ProblemStatement/tree/main/PS3)
 Assumed window: **~24 hours**. Fill in the actual start/deadline once confirmed:

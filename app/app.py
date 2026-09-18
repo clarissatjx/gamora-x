@@ -11,7 +11,7 @@ import streamlit as st
 st.set_page_config(page_title="gamora · CdM", page_icon="◆", layout="wide")
 
 import theme  # noqa: E402
-from inference import acv_page, door, overview, pending, rail_page, shm  # noqa: E402
+from inference import acv_page, door, overview, rail_page, shm  # noqa: E402
 
 SUBS = {
     "overview": {
@@ -112,7 +112,5 @@ theme.topbar("batch" if st.session_state.batch and meta["live"] else meta["crumb
 
 if st.session_state.view == "overview":
     overview.render(meta, SUBS)
-elif meta["live"]:
-    PAGES[st.session_state.view](meta, batch=st.session_state.batch, evidence=st.session_state.evidence)
 else:
-    pending.render(meta)
+    PAGES[st.session_state.view](meta, batch=st.session_state.batch, evidence=st.session_state.evidence)

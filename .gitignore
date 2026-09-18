@@ -9,3 +9,5 @@ venv/
 *.egg-info/
 *.local.joblib
 .claude/settings.local.json
+dist/
+demo_video.*
