@@ -19,7 +19,6 @@ const PAGES = { start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, 
 
 export default function App() {
   const [view, setView] = useState('start');
-  const Page = PAGES[view];
   const current = NAV.find((n) => n.key === view);
 
   return (
@@ -81,7 +80,13 @@ export default function App() {
             4 of 4 models loaded
           </div>
         </div>
-        <Page onOpen={setView} />
+        {/* Every page stays mounted so an uploaded result survives switching tabs — it only
+            clears when the page's own logic clears it (new upload, sample run, or Reset). */}
+        {Object.entries(PAGES).map(([key, Page]) => (
+          <div key={key} style={{ display: view === key ? 'block' : 'none' }}>
+            <Page onOpen={setView} />
+          </div>
+        ))}
       </div>
     </div>
   );
