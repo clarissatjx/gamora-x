@@ -31,6 +31,7 @@ SUBS = {
                  ("val score", "1.00 IoU-F1", theme.ACCENT),
                  ("split", "contiguous hold-out", None)],
         "csv": "door_predictions.csv",
+        "official": ("1.000", "IoU-weighted F1, held-out"),
     },
     "acv": {
         "nav": "ACV", "tag": "rank", "crumb": "acv", "live": True,
@@ -38,6 +39,7 @@ SUBS = {
         "subtitle": "Every car in the uploaded file ranked from most to least likely to carry "
                     "the refrigerant leak.",
         "csv": "acv_predictions.csv",
+        "official": ("0.875", "rank-decay, v1 ranking · v2 pending"),
         "meta": [("model", "physics gap + heuristic", None), ("version", "acv-v2", None),
                  ("val score", "1.000 rank-decay", theme.ACCENT), ("split", "leave-one-case-out, 6", None)],
     },
@@ -47,6 +49,7 @@ SUBS = {
         "subtitle": "One-second axle-box recording classified Normal, Side I or Side II from 64 "
                     "vibration and shock channels.",
         "csv": "rail_predictions.csv",
+        "official": ("0.888", "macro F1, held-out"),
         "meta": [("model", "HGB + stationary rule", None), ("version", "rail-v1", None),
                  ("val score", "0.81 macro-F1 (CV)", theme.ACCENT), ("split", "stratified 5-fold ×5", None)],
     },
@@ -56,6 +59,7 @@ SUBS = {
         "subtitle": "Dynamic stress series reduced to a single cumulative damage value via "
                     "rainflow counting and a calibrated Miner's-rule sum.",
         "csv": "shm_predictions.csv",
+        "official": ("0.974", "1 − MAPE, held-out"),
         "meta": shm.meta_rows(),
     },
 }
