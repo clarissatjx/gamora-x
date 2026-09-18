@@ -27,7 +27,7 @@ from typing import List
 
 import pandas as pd
 
-from app.inference.acv import predict_file
+from app.inference.acv import DEFAULT_METHOD, predict_file
 
 
 def _collect_input_files(input_path: Path) -> List[Path]:
@@ -41,13 +41,13 @@ def _collect_input_files(input_path: Path) -> List[Path]:
     return [input_path]
 
 
-def run(input_path: str, output_path: str) -> pd.DataFrame:
+def run(input_path: str, output_path: str, method: str = DEFAULT_METHOD) -> pd.DataFrame:
     files = _collect_input_files(Path(input_path))
 
     rows = []
     for f in files:
-        print(f"  ranking: {f.name} ...")
-        rows.append(predict_file(str(f)))
+        print(f"  ranking: {f.name} ({method}) ...")
+        rows.append(predict_file(str(f), method=method))
 
     result = pd.concat(rows, ignore_index=True)
 
@@ -62,8 +62,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate acv_predictions.csv from raw ACV case file(s).")
     parser.add_argument("--input", required=True, help="path to one .xlsx case file, or a directory of .xlsx files")
     parser.add_argument("--output", required=True, help="path to write acv_predictions.csv")
+    parser.add_argument("--method", default=DEFAULT_METHOD,
+                        choices=["heuristic", "physics", "blend"], help=f"ranker (default: {DEFAULT_METHOD})")
     args = parser.parse_args()
-    run(args.input, args.output)
+    run(args.input, args.output, method=args.method)
 
 
 if __name__ == "__main__":

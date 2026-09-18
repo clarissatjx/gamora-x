@@ -162,6 +162,64 @@ def fit_heuristic_weights(
 
 
 # ---------------------------------------------------------------------------
+# Physics rule: a leaking unit cannot pull its cabin down to the cooling setpoint
+# ---------------------------------------------------------------------------
+
+COOLING_MODES = {"Automatic Cooling", "Full Cooling", "Half Cooling"}
+MODE_PARAM = "ACV Running Mode"
+# (cabin temperature, cooling setpoint) under each schema seen so far
+TEMP_PAIRS = (
+    ("Indoor Average Temperature", "ACV Control Temperature (Cooling)"),
+    ("Passenger Cabin Temperature Detected Value", "Target Temperature Value"),
+)
+
+
+def physics_gap(case_df: pd.DataFrame) -> pd.Series:
+    """Mean (cabin temperature - cooling setpoint) per car over cooling-mode timestamps.
+
+    This is the direct thermal signature of refrigerant loss and has no free parameters.
+    NaN for cars that carry no cabin-temperature measurement in this file (case_04 has
+    it for four of eight cars), which the callers rank below the measured cars.
+    """
+    car_ids = sorted(case_df["car_id"].unique())
+    params = set(case_df["param"].unique())
+    pair = next((p for p in TEMP_PAIRS if set(p) <= params), None)
+    if pair is None:
+        return pd.Series(np.nan, index=car_ids)
+
+    def wide(param):
+        w = case_df[case_df["param"] == param].pivot(index="Time", columns="car_id", values="value")
+        return w.apply(pd.to_numeric, errors="coerce").reindex(columns=car_ids)
+
+    gap = wide(pair[0]) - wide(pair[1])
+    if MODE_PARAM in params:
+        mode = case_df[case_df["param"] == MODE_PARAM].pivot(index="Time", columns="car_id", values="value")
+        cool = mode.astype(str).isin(COOLING_MODES).reindex(index=gap.index, columns=car_ids).fillna(False)
+        if cool.to_numpy().any():
+            gap = gap.where(cool)
+    return gap.mean().reindex(car_ids)
+
+
+def _z(s: pd.Series) -> pd.Series:
+    sd = s.std(ddof=0)
+    return (s - s.mean()) / (sd if sd > 0 else 1.0)
+
+
+def blend_scores(feature_df: pd.DataFrame, gap: pd.Series, alpha: float = 0.5,
+                 weights: Optional[Dict[str, float]] = None) -> pd.Series:
+    """alpha * z(physics gap) + (1 - alpha) * z(heuristic score), both z-scored within the
+    file. Cars without a cabin-temperature measurement are ordered by the heuristic alone
+    and placed after every measured car. alpha=1 is the pure physics ranking."""
+    h = heuristic_scores(feature_df, weights=weights).reindex(feature_df.index)
+    zh = _z(h)
+    gap = gap.reindex(feature_df.index)
+    measured = gap.notna()
+    zp = _z(gap[measured]).reindex(feature_df.index)
+    score = np.where(measured, alpha * zp.fillna(0.0) + (1 - alpha) * zh, zh - 10.0)
+    return pd.Series(score, index=feature_df.index).sort_values(ascending=False)
+
+
+# ---------------------------------------------------------------------------
 # Supervised approach (small logistic regression over category-level scores)
 # ---------------------------------------------------------------------------
 
@@ -234,6 +292,7 @@ def score_cars(
     weights: Optional[Dict[str, float]] = None,
     model=None,
     scaler=None,
+    gap: Optional[pd.Series] = None,
 ) -> Tuple[List[str], pd.Series]:
     """Rank all cars in one file most-to-least-likely faulty.
 
@@ -242,7 +301,9 @@ def score_cars(
     feature_vectors : pd.DataFrame or dict[car_id -> vector]
         Per-car feature matrix for ONE file (e.g. ``extract_features``'s
         output for a single case), index/keys = car_id.
-    method : {"heuristic", "supervised"}
+    method : {"heuristic", "supervised", "physics", "blend"}
+        "physics" ranks by the cabin-minus-setpoint gap (see ``physics_gap``); "blend"
+        averages its within-file z-score with the heuristic's. Both need ``gap``.
     weights : dict, optional
         Feature weights for ``method="heuristic"`` (default: fixed prior
         ``HEURISTIC_WEIGHTS``, or pass a fitted dict from
@@ -262,6 +323,10 @@ def score_cars(
 
     if method == "heuristic":
         scores = heuristic_scores(feature_df, weights=weights)
+    elif method in ("physics", "blend"):
+        if gap is None:
+            raise ValueError(f"method={method!r} requires `gap` (see physics_gap)")
+        scores = blend_scores(feature_df, gap, alpha=1.0 if method == "physics" else 0.5, weights=weights)
     elif method == "supervised":
         if model is None or scaler is None:
             raise ValueError("method='supervised' requires a fitted `model` and `scaler` (see fit_supervised)")
@@ -270,7 +335,7 @@ def score_cars(
         proba = model.predict_proba(X_scaled)[:, 1]
         scores = pd.Series(proba, index=feature_df.index).sort_values(ascending=False)
     else:
-        raise ValueError(f"unknown method: {method!r} (expected 'heuristic' or 'supervised')")
+        raise ValueError(f"unknown method: {method!r} (expected 'heuristic', 'supervised', 'physics' or 'blend')")
 
     ranked = list(scores.index)
     return ranked, scores

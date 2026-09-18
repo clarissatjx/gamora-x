@@ -21,7 +21,13 @@ from typing import List, Tuple
 import pandas as pd
 
 from subsystems.acv.features import extract_features, load_case
-from subsystems.acv.rank import score_cars
+from subsystems.acv.rank import physics_gap, score_cars
+
+# "blend": within-file z of the physics gap (cabin temperature minus cooling setpoint, the
+# direct thermal signature of a leak) averaged with the fixed-prior heuristic. Scores 1.000
+# on all six labelled cases; the heuristic alone also does, but its Test top pick was driven
+# by the "Information Valid" telemetry flag rather than temperature. See subsystems/acv/PLAN.md.
+DEFAULT_METHOD = "blend"
 
 
 def _resolve_file_id(file) -> str:
@@ -34,7 +40,7 @@ def _resolve_file_id(file) -> str:
     return os.path.basename(str(file))
 
 
-def rank_case(file) -> Tuple[str, List[str]]:
+def rank_case(file, method: str = DEFAULT_METHOD) -> Tuple[str, List[str]]:
     """Rank one raw ACV case file's cars most-to-least-likely to have the
     refrigerant leak.
 
@@ -55,15 +61,16 @@ def rank_case(file) -> Tuple[str, List[str]]:
     file_id = _resolve_file_id(file)
     case_df = load_case(file)
     feature_df = extract_features(case_df)
-    ranked_cars, _scores = score_cars(feature_df, method="heuristic")
+    gap = physics_gap(case_df) if method in ("physics", "blend") else None
+    ranked_cars, _scores = score_cars(feature_df, method=method, gap=gap)
     return file_id, ranked_cars
 
 
-def predict_file(file) -> pd.DataFrame:
+def predict_file(file, method: str = DEFAULT_METHOD) -> pd.DataFrame:
     """Predict one raw ACV case file -> one-row DataFrame matching the exact
     ``acv_predictions.csv`` submission schema: columns ``file_id``,
     ``ranked_cars`` (pipe-``|``-joined car IDs, most-to-least-likely
     faulty). No ``prediction`` column, no extras.
     """
-    file_id, ranked_cars = rank_case(file)
+    file_id, ranked_cars = rank_case(file, method=method)
     return pd.DataFrame({"file_id": [file_id], "ranked_cars": ["|".join(ranked_cars)]})
