@@ -23,7 +23,7 @@ We're given sensor data from **4 independent rail-vehicle subsystems**, each its
 | 3 | **Rail Corrugation** | Classify a 1s axle-box recording as Normal / Side I / Side II | 129 cols (speed + 64 axle-boxes × vibration/shock), 10kHz, 1s files | `rail_predictions.csv` — one row per file: `file_id`, `prediction` (`Normal`/`Side I`/`Side II`) | Macro F1 (unweighted avg across 3 classes — dataset is ~86% Normal, so this matters a lot) |
 | 4 | **SHM** | Predict a single cumulative fatigue-damage number per file | Dynamic stress time series, equal-length segments | `shm_predictions.csv` — one row per file: `file_id`, `prediction` (numeric) | `max(0, 1 − MAPE)` |
 
-Full authoritative details (schemas, edge cases, worked scoring examples) live in each subsystem's own Info Kit under `03_References/<Subsystem>/` in the problem-statement repo — **read the relevant one in full before that subsystem's owner starts building**, this table is just an index.
+Full authoritative details (schemas, edge cases, worked scoring examples) live in each subsystem's own Info Kit, now mirrored locally under [`references/<Subsystem>/`](references/) — **read the relevant one in full before that subsystem's owner starts building**, this table is just an index.
 
 Dataset sizes worth knowing up front:
 - **Door**: 1 continuous labelled stream (`Train.csv` + `Train_Segments_Answer.csv`) + 1 unlabelled continuous `Test.csv`. Segmentation is the hard part, not just classification.
