@@ -610,9 +610,40 @@ state, and the regenerated `rail_predictions.csv` is unchanged.
 
 ---
 
+## Speed convention — resolved from evidence, not assumed
+
+Phase 1 flagged the one genuinely open modelling assumption: does one tooth passing the
+sensor produce **one** rising edge (so `revolutions = rising_edges / 90`) or **two**
+transitions (halving the derived speed)? The Info Kit doesn't state it outright, and the
+choice scales every speed value by 2×.
+
+It scales all files identically, so it cannot change the classifier's decisions — but it
+does change whether the reported speeds mean anything physically, and the `dominant_wavelength`
+features derive from it. Three independent checks resolve it in favour of the shipped
+convention:
+
+1. **Duty cycle.** The pulse train is high 50.0–50.9% of the time, and rising edges exactly
+   equal falling edges on every file inspected. Teeth and gaps are therefore equal width —
+   a standard toothed wheel — so each tooth contributes exactly one rising edge, giving 90
+   rising edges per revolution, not 180.
+2. **The Info Kit's own wording.** "When a tooth enters and leaves the detection point, the
+   sensor output toggles between 1 and 0" describes two *transitions* per tooth but only one
+   *rising* edge per tooth — consistent with (1).
+3. **Physical plausibility.** Under the shipped convention the fleet runs at mean 37 km/h and
+   max 70 km/h, squarely typical metro operation. The doubled convention implies mean
+   74 km/h and max 140 km/h, implausible on a line the Info Kit itself describes as having
+   "many sharp curves, frequent acceleration and deceleration".
+
+**Conclusion: `revolutions = rising_edges / 90` is correct**, and the derived speeds are
+physically meaningful rather than merely internally consistent. This closes the last open
+judgment call.
+
+---
+
 ## Judgment calls log (carried into the write-up)
 
-- [ ] Speed derivation convention (1 tooth = 1 rising edge vs. 2 transitions)
+- [x] **Speed derivation: 1 tooth = 1 rising edge** (`revolutions = rising_edges / 90`).
+      Resolved from evidence rather than assumed — see "Speed convention" below
 - [x] Asymmetry (diff/ratio) features — **keep**, but scoped honestly: strong on Side II
       (AUC 0.92), weak on Side I (AUC 0.69)
 - [x] **Stationary files (38 train / 9 test, all Normal): excluded from model training,
@@ -625,7 +656,6 @@ state, and the regenerated `rail_predictions.csv` is unchanged.
       both artifacts of max-wavelength saturating at the 1 Hz FFT bin ⇒ 239 features
 - [x] Near-duplicate/run-grouping leakage checked in feature space — none found, so
       ungrouped stratified k-fold is sound
-- [ ] Speed derivation convention is still the one genuinely open call — see the first entry
 - [ ] **Write-up caveats to record**: (a) `speed_mps` is quantised to ~0.0297 m/s steps
       (π×0.85/90 per rising edge), so repeated identical speed values across files are a
       formula artifact, not duplicate recordings; (b) the asymmetry features were designed
