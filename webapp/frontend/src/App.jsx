@@ -2,9 +2,11 @@ import { useState } from 'react';
 import AcvPage from './pages/AcvPage';
 import DoorPage from './pages/DoorPage';
 import RailPage from './pages/RailPage';
+import SavedPage from './pages/SavedPage';
 import ShmPage from './pages/ShmPage';
 import StartPage from './pages/StartPage';
 import Term from './components/Term';
+import useSavedResults from './hooks/useSavedResults';
 
 // Scores are the same held-out figures shown throughout the app (README, Streamlit sidebar) —
 // static here since they don't depend on any upload.
@@ -15,11 +17,12 @@ const NAV = [
   { key: 'shm', label: 'SHM', tag: '1−MAPE', score: '0.974', csv: 'shm_predictions.csv' },
 ];
 
-const PAGES = { start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage };
+const PAGES = { start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage, saved: SavedPage };
 
 export default function App() {
   const [view, setView] = useState('start');
   const current = NAV.find((n) => n.key === view);
+  const { saved, save, remove, isSaved } = useSavedResults();
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -41,6 +44,15 @@ export default function App() {
         >
           <span className="gx-nav-flag" />
           <span className="gx-nav-label">Get started</span>
+        </button>
+
+        <button
+          onClick={() => setView('saved')}
+          className={`gx-nav-btn${view === 'saved' ? ' active' : ''}`}
+        >
+          <span className="gx-nav-flag" />
+          <span className="gx-nav-label">Saved</span>
+          {saved.length > 0 && <span className="gx-nav-tag">{saved.length}</span>}
         </button>
 
         <div style={{ margin: '12px 2px 6px', fontSize: 11, color: 'var(--gx-dim)', fontWeight: 600 }}>
@@ -84,7 +96,7 @@ export default function App() {
             clears when the page's own logic clears it (new upload, sample run, or Reset). */}
         {Object.entries(PAGES).map(([key, Page]) => (
           <div key={key} style={{ display: view === key ? 'block' : 'none' }}>
-            <Page onOpen={setView} />
+            <Page onOpen={setView} saved={saved} isSaved={isSaved} onSave={save} onRemove={remove} />
           </div>
         ))}
       </div>
