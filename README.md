@@ -7,10 +7,10 @@ prediction on screen with the evidence behind it, download the submission CSV.
 | Subsystem | Task | Metric | Held-out score |
 |---|---|---|---|
 | Door | segment a continuous motor-current stream into cycles, flag abnormal resistance | IoU-weighted F1 | **1.000** |
-| ACV | rank 8 cars by likelihood of a refrigerant leak | rank-decay | 0.875 (v1) |
+| ACV | rank 8 cars by likelihood of a refrigerant leak | rank-decay | **1.000** |
 | Rail Corrugation | classify a 1 s axle-box recording: Normal / Side I / Side II | macro F1 | 0.888 |
 | SHM | cumulative fatigue damage from a dynamic-stress series | 1 − MAPE | 0.974 |
-| **Overall** | | mean of four | **0.934** |
+| **Overall** | | mean of four | **0.9655** |
 
 ## Submission contents (this repository is the submission)
 

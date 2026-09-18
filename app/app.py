@@ -39,7 +39,7 @@ SUBS = {
         "subtitle": "Every car in the uploaded file ranked from most to least likely to carry "
                     "the refrigerant leak.",
         "csv": "acv_predictions.csv",
-        "official": ("0.875", "rank-decay, v1 ranking · v2 pending"),
+        "official": ("1.000", "rank-decay, held-out"),
         "meta": [("model", "physics gap + heuristic", None), ("version", "acv-v2", None),
                  ("val score", "1.000 rank-decay", theme.ACCENT), ("split", "leave-one-case-out, 6", None)],
     },

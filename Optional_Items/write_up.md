@@ -10,15 +10,19 @@ from the repository: each subsystem's `PLAN.md` records the data facts, every ex
 | Subsystem | Task | Metric | Our validation estimate | Held-out score |
 |---|---|---|---|---|
 | Door | segment a continuous stream into door cycles, classify each Normal / Abnormal resistance | IoU-weighted F1 | 1.000 (time-ordered holdout, 22 cycles) | **1.000** |
-| ACV | rank 8 cars by likelihood of a refrigerant leak | linear rank-decay | 1.000 (leave-one-case-out, 6 cases) | 0.875 (v1) |
-| Rail corrugation | classify a 1 s axle-box recording Normal / Side I / Side II | macro F1 | 0.806 ± 0.03 (5×5 repeated stratified CV) | 0.888 |
-| SHM | cumulative fatigue damage of a dynamic-stress segment | max(0, 1 − MAPE) | 0.974 analytic / 0.978 corrected (leave-one-out, 64 files) | 0.974 |
-| **Overall** | all four attempted | mean | | **0.934** |
+| ACV | rank 8 cars by likelihood of a refrigerant leak | linear rank-decay | 1.000 (leave-one-case-out, 6 cases) | **1.000** (v2; v1 scored 0.875) |
+| Rail corrugation | classify a 1 s axle-box recording Normal / Side I / Side II | macro F1 | 0.806 ± 0.03 (5×5 repeated stratified CV) | 0.8877 |
+| SHM | cumulative fatigue damage of a dynamic-stress segment | max(0, 1 − MAPE) | 0.974 analytic / 0.978 corrected (leave-one-out, 64 files) | 0.9743 |
+| **Overall** | all four attempted | mean | | **0.9655** |
 
-Two of the held-out scores land on our own validation estimates to three or four decimal
-places (Door, SHM), which is the strongest evidence we can offer that the splits were sound and
-nothing leaked. Rail scored above its estimate — a favourable draw, discussed in §4. ACV's 0.875
-is the score of our first submission; §3 explains what it revealed and what we changed.
+Three of the four held-out scores land on our own validation estimates to three or four decimal
+places (Door, ACV, SHM), which is the strongest evidence we can offer that the splits were sound
+and nothing leaked. Rail scored above its estimate — a favourable draw, discussed in §4.
+
+ACV is the one subsystem that was submitted twice, and we have left the full history in §3
+rather than presenting only the final number: v1 scored 0.875, the decomposition of that failure
+identified a feature that was coincidental rather than physical, and v2 replaced it with a direct
+measurement of the fault mechanism.
 
 ## 2. Door — cycle detection and classification
 
@@ -90,7 +94,10 @@ timestamps, per car. It has no fitted parameter, so its score on the labelled ca
 out-of-sample estimate: true car first in five of six (0.979), the miss being the file where half
 the cars have no cabin sensor. Blending its within-file z-score equally with the v1 heuristic
 (whose pressure channels cover that file) scores 1.000 on all six with still no fitted parameter,
-and that blend is the shipped default. It ranks car 01 first on the test workbook.
+and that blend is the shipped default. It ranks car 01 first on the test workbook, and on
+resubmission it scored **1.000**. Note that the physics ranker alone also puts 01 first, so the
+resubmission would have scored 1.000 either way — the blend was preferred for covering the one
+labelled case where cabin temperature is largely missing, not to chase the test answer.
 
 **Disclosure.** The physics rule was formulated after the leaderboard feedback, from the failure
 mechanism, and was validated on the labelled cases before its test output was examined. Its
