@@ -1,3 +1,4 @@
+import Glossed from './Glossed';
 import Panel from './Panel';
 import Pill from './Pill';
 import { COLORS, tierColor } from '../theme';
@@ -18,7 +19,7 @@ export default function Verdict({ headline, tier, tierLabel, confidenceLabel, re
           <Pill text={`Confidence: ${confidenceLabel}`} color={COLORS.faint} />
         </div>
       </div>
-      <p className="gx-prose gx-verdict-reasoning">{reasoning}</p>
+      <p className="gx-prose gx-verdict-reasoning"><Glossed text={reasoning} /></p>
     </Panel>
   );
 }

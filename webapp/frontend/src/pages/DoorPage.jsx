@@ -7,6 +7,7 @@ import Panel from '../components/Panel';
 import ReliabilityPanel from '../components/ReliabilityPanel';
 import Verdict from '../components/Verdict';
 import DoorChart from '../components/DoorChart';
+import Glossed from '../components/Glossed';
 import Pill from '../components/Pill';
 import Spinner from '../components/Spinner';
 import { COLORS } from '../theme';
@@ -123,13 +124,13 @@ export default function DoorPage() {
               <div className="gx-ev" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
                 {result.evidence.tiles.map((t) => (
                   <div key={t.label} style={{ background: 'var(--gx-bg)', border: '1px solid var(--gx-border)', borderRadius: 8, padding: '13px 15px' }}>
-                    <div style={{ fontSize: 13, color: 'var(--gx-muted)' }}>{t.label}</div>
+                    <div style={{ fontSize: 13, color: 'var(--gx-muted)' }}><Glossed text={t.label} /></div>
                     <div className="mono" style={{ fontSize: 19, fontWeight: 600, margin: '3px 0', color: COLORS.red }}>{t.value}</div>
                     <div className="mono" style={{ fontSize: 12.5, color: 'var(--gx-faint)' }}>{t.note}</div>
                   </div>
                 ))}
               </div>
-              <p className="gx-prose" style={{ marginTop: 12 }}>{result.evidence.prose}</p>
+              <p className="gx-prose" style={{ marginTop: 12 }}><Glossed text={result.evidence.prose} /></p>
             </Panel>
           )}
 

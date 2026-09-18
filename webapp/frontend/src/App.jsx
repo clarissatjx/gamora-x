@@ -3,6 +3,7 @@ import AcvPage from './pages/AcvPage';
 import DoorPage from './pages/DoorPage';
 import RailPage from './pages/RailPage';
 import ShmPage from './pages/ShmPage';
+import Term from './components/Term';
 
 // Scores are the same held-out figures shown throughout the app (README, Streamlit sidebar) —
 // static here since they don't depend on any upload.
@@ -42,7 +43,7 @@ export default function App() {
           >
             <span className="gx-nav-dot" />
             <span className="gx-nav-label">{n.label}</span>
-            <span className="gx-nav-tag">{n.tag}</span>
+            <Term term={n.tag} className="gx-nav-tag">{n.tag}</Term>
           </button>
         ))}
 

@@ -1,3 +1,4 @@
+import Glossed from './Glossed';
 import Panel from './Panel';
 import { COLORS } from '../theme';
 
@@ -20,7 +21,7 @@ export default function ReliabilityPanel({ title, note, lines }) {
           </div>
         </div>
       ))}
-      <p className="gx-prose" style={{ color: COLORS.faint, marginTop: 2 }}>{note}</p>
+      <p className="gx-prose" style={{ color: COLORS.faint, marginTop: 2 }}><Glossed text={note} /></p>
     </Panel>
   );
 }

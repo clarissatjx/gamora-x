@@ -8,6 +8,7 @@ import ReliabilityPanel from '../components/ReliabilityPanel';
 import Verdict from '../components/Verdict';
 import ChannelChart from '../components/ChannelChart';
 import Spinner from '../components/Spinner';
+import Term from '../components/Term';
 import { COLORS } from '../theme';
 import { downloadCsv } from '../utils/csv';
 
@@ -62,8 +63,8 @@ export default function RailPage() {
         and shock channels.
       </p>
       <div className="gx-footnote">
-        Official held-out score <b style={{ color: COLORS.accent }}>0.888</b> vs our own
-        cross-validation estimate <b style={{ color: COLORS.text }}>0.81 macro-F1</b> — the two
+        Official <Term term="held-out">held-out</Term> score <b style={{ color: COLORS.accent }}>0.888</b> vs our own
+        <Term term="cross-validation"> cross-validation</Term> estimate <b style={{ color: COLORS.text }}>0.81 <Term term="macro-F1">macro-F1</Term></b> — the two
         are measured on different files and can legitimately disagree; see
         &ldquo;How reliable is this?&rdquo; below.
       </div>

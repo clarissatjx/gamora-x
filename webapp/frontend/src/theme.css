@@ -177,3 +177,14 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 20p
   display: block; color: var(--gx-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin-top: 1px;
 }
+
+/* ---------------- glossary tooltip ---------------- */
+.gx-term { position: relative; border-bottom: 1px dotted var(--gx-border-hover); cursor: help; }
+.gx-term-tip {
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  z-index: 60; width: 220px; max-width: 70vw; text-align: left;
+  background: var(--gx-panel); border: 1px solid var(--gx-border-strong); border-radius: 8px;
+  padding: 10px 12px; font-size: 12.5px; line-height: 1.45; color: var(--gx-body);
+  font-family: 'Source Sans 3', sans-serif; font-weight: 400; white-space: normal;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
