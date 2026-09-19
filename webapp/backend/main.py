@@ -205,19 +205,43 @@ def get_door_model():
     return _door_model
 
 
-def door_worst_cycle(out: pd.DataFrame, feats: pd.DataFrame):
-    """Mirrors app/inference/door.py::_worst_cycle — the most confidently flagged cycle,
-    with its excess current over the healthy peers of the same operation in this file."""
-    if not (out.prediction == ABNORMAL).any():
-        return None
-    abn = out.index[out.prediction == ABNORMAL]
-    i = int(out.loc[abn, "confidence"].idxmax())
+def door_cycle_evidence(i: int, out: pd.DataFrame, feats: pd.DataFrame) -> dict:
+    """The "why is this cycle flagged" feature/baseline breakdown for cycle i (0-based) against
+    the healthy peers of the same operation in this file — computable for any cycle, not just
+    the most-confidently-flagged one."""
     op = feats.op.iloc[i]
     peers = feats[(feats.op == op) & (out.prediction == "Normal").to_numpy()]
     if peers.empty:
         peers = feats[feats.op == op]
     excess = float(feats.cur_mid.iloc[i] / max(peers.cur_mid.median(), 1e-9) - 1)
-    return {"i": i, "feats": feats, "peers": peers, "excess": excess, "confidence": float(out.confidence.iloc[i])}
+    return {
+        "excess": excess,
+        "confidence": float(out.confidence.iloc[i]),
+        "tiles": [
+            {"label": "Mid-travel current", "value": f"{feats.cur_mid.iloc[i]:.0f} mA",
+             "note": f"baseline {peers.cur_mid.median():.0f} mA"},
+            {"label": "Cycle duration", "value": f"{feats.n_rows.iloc[i] * DOOR_SAMPLE_SECONDS:.2f} s",
+             "note": f"baseline {peers.n_rows.median() * DOOR_SAMPLE_SECONDS:.2f} s"},
+            {"label": "Back-EMF, mid-travel", "value": f"{feats.emf_mid.iloc[i]:.0f}",
+             "note": f"baseline {peers.emf_mid.median():.0f}"},
+        ],
+        "prose": (
+            f"Mid-travel motor current on cycle {i + 1} sits {excess:.0%} above the healthy "
+            "cycles of the same operation in this recording, while back-EMF falls — the motor "
+            "is pushing harder and turning slower. Both point to added mechanical resistance "
+            "rather than a control fault."
+        ),
+    }
+
+
+def door_worst_cycle(out: pd.DataFrame, feats: pd.DataFrame):
+    """Mirrors app/inference/door.py::_worst_cycle — the most confidently flagged cycle, which
+    drives the headline/reasoning sentence and the evidence panel's default selection."""
+    if not (out.prediction == ABNORMAL).any():
+        return None
+    abn = out.index[out.prediction == ABNORMAL]
+    i = int(out.loc[abn, "confidence"].idxmax())
+    return {"i": i, **door_cycle_evidence(i, out, feats)}
 
 
 def build_door_result(data: bytes, file_id: str) -> dict:
@@ -246,26 +270,12 @@ def build_door_result(data: bytes, file_id: str) -> dict:
             "consistent with added mechanical resistance."
         ) if worst else "Cycles were flagged abnormal; not enough peer data to quantify the excess."
 
-    evidence = None
-    if worst:
-        i, wfeats, peers = worst["i"], worst["feats"], worst["peers"]
-        evidence = {
-            "title": f"Why cycle {i + 1} was flagged",
-            "tiles": [
-                {"label": "Mid-travel current", "value": f"{wfeats.cur_mid.iloc[i]:.0f} mA",
-                 "note": f"baseline {peers.cur_mid.median():.0f} mA"},
-                {"label": "Cycle duration", "value": f"{wfeats.n_rows.iloc[i] * DOOR_SAMPLE_SECONDS:.2f} s",
-                 "note": f"baseline {peers.n_rows.median() * DOOR_SAMPLE_SECONDS:.2f} s"},
-                {"label": "Back-EMF, mid-travel", "value": f"{wfeats.emf_mid.iloc[i]:.0f}",
-                 "note": f"baseline {peers.emf_mid.median():.0f}"},
-            ],
-            "prose": (
-                f"Mid-travel motor current on cycle {i + 1} sits {worst['excess']:.0%} above the "
-                "healthy cycles of the same operation in this recording, while back-EMF falls — "
-                "the motor is pushing harder and turning slower. Both point to added mechanical "
-                "resistance rather than a control fault."
-            ),
-        }
+    # Every abnormal cycle gets its own "why was this flagged" breakdown, not just the
+    # single most-confident one — an engineer should be able to check any of them.
+    evidence_by_cycle = {
+        int(i) + 1: door_cycle_evidence(int(i), out, feats)
+        for i in out.index[out.prediction == ABNORMAL]
+    }
 
     lengths = (segs.i1 - segs.i0 + 1) * DOOR_SAMPLE_SECONDS
     step = max(1, len(df) // 3000)
@@ -296,7 +306,8 @@ def build_door_result(data: bytes, file_id: str) -> dict:
         "reliability_note": rel.DOOR_RELIABILITY_NOTE,
         "cycles": cycles,
         "chart": {"trace": trace, "bands": bands},
-        "evidence": evidence,
+        "evidence_by_cycle": evidence_by_cycle,
+        "worst_cycle": (worst["i"] + 1) if worst else None,
         "official_score": "1.000",
     }
 

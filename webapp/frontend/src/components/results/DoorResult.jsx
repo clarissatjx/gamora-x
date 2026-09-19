@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Banner from '../Banner';
 import DataTable from '../DataTable';
 import Metrics from '../Metrics';
@@ -20,6 +21,12 @@ const STATUS_COLOR = { Normal: COLORS.green, [ABNORMAL]: COLORS.red };
 // Saved tab so a saved snapshot gets the exact same chart/table, not a stripped summary.
 export default function DoorResult({ result, isSaved, onSave, onRemove }) {
   const entry = buildSavedEntry('door', result);
+  const abnormalCycles = result.evidence_by_cycle
+    ? Object.keys(result.evidence_by_cycle).map(Number).sort((a, b) => a - b)
+    : [];
+  const [selectedCycle, setSelectedCycle] = useState(result.worst_cycle ?? abnormalCycles[0]);
+  const evidence = result.evidence_by_cycle?.[selectedCycle];
+
   return (
     <>
       <Banner
@@ -54,18 +61,39 @@ export default function DoorResult({ result, isSaved, onSave, onRemove }) {
         <DoorChart trace={result.chart.trace} bands={result.chart.bands} />
       </Panel>
 
-      {result.evidence && (
-        <Panel heading={result.evidence.title}>
-          <div className="gx-ev" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
-            {result.evidence.tiles.map((t) => (
-              <div key={t.label} style={{ background: 'var(--gx-bg)', border: '1px solid var(--gx-border)', borderRadius: 8, padding: '13px 15px' }}>
-                <div style={{ fontSize: 13, color: 'var(--gx-muted)' }}><Glossed text={t.label} /></div>
-                <div className="mono" style={{ fontSize: 19, fontWeight: 600, margin: '3px 0', color: COLORS.red }}>{t.value}</div>
-                <div className="mono" style={{ fontSize: 12.5, color: 'var(--gx-faint)' }}>{t.note}</div>
+      {abnormalCycles.length > 0 && (
+        <Panel
+          heading={`Why cycle ${selectedCycle} was flagged`}
+          sub={abnormalCycles.length > 1 ? `${abnormalCycles.length} cycles were flagged — pick one to see its own breakdown.` : undefined}
+        >
+          {abnormalCycles.length > 1 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12, marginBottom: 4 }}>
+              {abnormalCycles.map((n) => (
+                <button
+                  key={n}
+                  className={`gx-chip${n === selectedCycle ? ' active' : ''}`}
+                  onClick={() => setSelectedCycle(n)}
+                  aria-pressed={n === selectedCycle}
+                >
+                  Cycle {n}
+                </button>
+              ))}
+            </div>
+          )}
+          {evidence && (
+            <>
+              <div className="gx-ev" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, marginTop: 14 }}>
+                {evidence.tiles.map((t) => (
+                  <div key={t.label} style={{ background: 'var(--gx-bg)', border: '1px solid var(--gx-border)', borderRadius: 8, padding: '13px 15px' }}>
+                    <div style={{ fontSize: 13, color: 'var(--gx-muted)' }}><Glossed text={t.label} /></div>
+                    <div className="mono" style={{ fontSize: 19, fontWeight: 600, margin: '3px 0', color: COLORS.red }}>{t.value}</div>
+                    <div className="mono" style={{ fontSize: 12.5, color: 'var(--gx-faint)' }}>{t.note}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <p className="gx-prose" style={{ marginTop: 12 }}><Glossed text={result.evidence.prose} /></p>
+              <p className="gx-prose" style={{ marginTop: 12 }}><Glossed text={evidence.prose} /></p>
+            </>
+          )}
         </Panel>
       )}
 
