@@ -26,10 +26,10 @@ export default function Verdict({ headline, tier, tierLabel, confidenceLabel, re
         {(reliabilityNote || scoresNote) && (
           <div style={{ fontSize: 12.5, color: 'var(--gx-faint)', marginTop: 10, display: 'flex', gap: 22, rowGap: 6, flexWrap: 'wrap' }}>
             {reliabilityNote && (
-              <HoverNote label="How reliable is this?" tip={reliabilityNote} align="start" wide />
+              <HoverNote label="How reliable is this?" tip={reliabilityNote} wide />
             )}
             {scoresNote && (
-              <HoverNote label="See all three scores" tip={scoresNote} align="start" wide />
+              <HoverNote label="See all three scores" tip={scoresNote} wide />
             )}
           </div>
         )}

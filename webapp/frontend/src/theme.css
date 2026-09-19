@@ -381,8 +381,7 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
 .gx-caveat-title { font-size: 13px; font-weight: 700; color: var(--gx-text); margin-bottom: 3px; }
 .gx-caveat-body { font-size: 13px; line-height: 1.55; color: var(--gx-body); margin: 0; }
 
-/* A centred tip overhangs its trigger by half its width, which collides with a neighbouring
-   hover and with the panel edge. Anchoring it to one edge of the trigger keeps it inside. */
-.gx-term-tip--start { left: 0; transform: none; }
-.gx-term-tip--end { left: auto; right: 0; transform: none; }
+/* Roomier than the shared default, which is sized for a short glossary definition — the
+   verdict and metric notes carry a sentence or two. Overhang is handled by the viewport
+   clamping in HoverNote/Term, not by anchoring. */
 .gx-term-tip--wide { width: 300px; }
