@@ -537,7 +537,9 @@ def build_shm_result(data: bytes, file_id: str) -> dict:
         "max_range": res["max_range"],
         "tier": tier, "tier_label": rel.TIER_LABEL[tier],
         "confidence_label": "Medium" if damage < 0.8 else "High",
-        "headline": f"Damage {damage:.3f} of 1.0", "reasoning": reasoning,
+        # 6 dp everywhere the damage is shown — the precision of the submitted CSV, so the
+        # headline, the metric tile and the downloaded file all read the same number.
+        "headline": f"Damage {damage:.6f} of 1.0", "reasoning": reasoning,
         "reliability_note": rel.SHM_RELIABILITY_NOTE,
         "trace": trace, "peaks": peaks, "mean": float(x.mean()),
         "histogram": shm_histogram(res),

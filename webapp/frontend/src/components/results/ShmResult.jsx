@@ -48,7 +48,7 @@ export default function ShmResult({ result, isSaved, onSave, onRemove, onUploadN
 
       <Metrics
         items={[
-          { label: 'Cumulative damage', value: result.damage.toFixed(4), note: '0 = fresh, 1 = life used up', color: 'var(--gx-accent)' },
+          { label: 'Cumulative damage', value: result.damage.toFixed(6), note: '0 = fresh, 1 = life used up', color: 'var(--gx-accent)' },
           { label: 'Rainflow cycles', value: result.n_cycles.toLocaleString(undefined, { maximumFractionDigits: 0 }), note: `${result.n_reversals.toLocaleString()} reversals` },
           { label: 'Peak stress range', value: result.max_range.toFixed(1), note: 'largest single cycle' },
         ]}
