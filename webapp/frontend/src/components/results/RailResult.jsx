@@ -68,7 +68,7 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
             note: result.stationary ? 'by rule — train not moving' : 'from the vibration pattern',
             color: result.stationary ? COLORS.dim : CLASS_COLOR[result.csv_prediction] },
           { label: 'Confidence', value: result.stationary ? 'rule' : `${(result.confidence_value * 100).toFixed(0)}%`,
-            note: result.stationary ? 'no wheel rotation detected' : 'how sure the model is',
+            note: result.stationary ? 'no wheel rotation detected' : 'hover for all three scores',
             tip: result.stationary ? undefined : probabilityTip(result) },
           { label: 'Recording speed', value: `${result.speed_kmh.toFixed(0)} km/h`, note: 'from the pulse channel' },
           { label: 'Side asymmetry', value: `${result.asym >= 0 ? '+' : ''}${result.asym.toFixed(3)}`,

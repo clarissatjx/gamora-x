@@ -37,7 +37,6 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
   const [lo, hi] = axis?.length === 2 ? axis : FALLBACK_AXIS;
   const pct = (v) => Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
   const here = hasValue ? pct(value) : null;
-  const ticks = [-0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15];
 
   // Where healthy and Side I overlap, this axis genuinely cannot separate them — and that is
   // 94% of the healthy band. Drawing it stops "my needle is in healthy" reading as "I'm fine".
@@ -123,11 +122,9 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
 
       <div className="gx-gauge-axis">
         <span className="gx-gauge-axis-end" style={{ left: 0 }}>Side II louder</span>
-        {ticks.map((t) => (
-          <span key={t} className="gx-gauge-tick" style={{ left: `${pct(t)}%` }}>
-            {t === 0 ? '0' : t.toFixed(2)}
-          </span>
-        ))}
+        {/* A single worded reference: the numeric ticks collided with the end labels and
+            nothing depends on reading them now that both ends are named. */}
+        <span className="gx-gauge-tick" style={{ left: `${pct(0)}%` }}>sides equal</span>
         <span className="gx-gauge-axis-end" style={{ right: 0 }}>Side I louder</span>
       </div>
 
