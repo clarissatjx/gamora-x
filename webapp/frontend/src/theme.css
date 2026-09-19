@@ -245,7 +245,8 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
 .gx-sidebar-toggle:hover { color: var(--gx-text); border-color: var(--gx-border-hover); }
 .gx-sidebar-toggle:focus-visible { outline: 2px solid var(--gx-accent); outline-offset: 2px; }
 .gx-sidebar-rail {
-  width: 52px; flex-shrink: 0; border-right: 1px solid var(--gx-border);
+  width: 52px; flex-shrink: 0; height: 100%; overflow-y: auto;
+  border-right: 1px solid var(--gx-border);
   padding: 20px 0; display: flex; flex-direction: column; align-items: center; gap: 16px;
 }
 

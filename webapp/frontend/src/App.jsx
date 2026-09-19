@@ -71,10 +71,11 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {sidebarOpen ? (
         <div style={{
-          width: 268, flexShrink: 0, borderRight: '1px solid var(--gx-border)',
+          width: 268, flexShrink: 0, height: '100%', overflowY: 'auto',
+          borderRight: '1px solid var(--gx-border)',
           padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 4,
         }}>
           <div className="gx-brand" style={{ marginBottom: 22, justifyContent: 'space-between' }}>
@@ -180,7 +181,7 @@ export default function App() {
         )}
       </div>
 
-      <div style={{ flex: 1, padding: '24px 32px 56px', maxWidth: 1148 }}>
+      <div style={{ flex: 1, height: '100%', overflowY: 'auto', padding: '24px 32px 56px', maxWidth: 1148 }}>
         <div className="gx-topbar">
           <div className="gx-status">
             <span className="gx-status-dot" />

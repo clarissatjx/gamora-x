@@ -75,7 +75,7 @@ export default function StartPage({ onOpen, onUpload }) {
     <div>
       <h1 className="gx-h1" style={{ marginBottom: 20 }}>Get started</h1>
 
-      <Banner text="Every result comes with how urgent it is, how sure the model is, and why — not just a class label or a number." />
+      <Banner text="Every result comes with how urgent it is, how sure the model is, and why." />
 
       <Panel>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
