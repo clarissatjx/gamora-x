@@ -3,6 +3,7 @@ import { tierColor } from '../theme';
 
 // Monitor and Inspect soon share amber (theme.js TIER_COLOR), so the bands differ by strength.
 const BAND_OPACITY = { ok: 0.06, monitor: 0.07, inspect: 0.15, act: 0.12 };
+const AXIS_TOP = 1.0;
 
 // Running fatigue damage across the recording, shaded by the same urgency tiers the verdict
 // uses. No ceiling line: the axis fits the data, and the top tier runs to the top. Plain SVG
@@ -18,8 +19,9 @@ export default function DamageCurveChart({ curve, nSamples }) {
 
   const last = points[points.length - 1];
   const xMax = Math.max(last.i, 1);
-  // Tall enough for the curve and for every tier band to show, however low this file ends.
-  const yMax = Math.max(last.damage, ...tiers.map((t) => t.from)) * 1.12;
+  // Always runs up to 1.0 (Miner's rule: fatigue life used up) so every file is read on the
+  // same scale — no line is drawn there. A file past 1.0 gets a little headroom above its end.
+  const yMax = Math.max(AXIS_TOP, last.damage * 1.05);
   const bandTop = (t) => t.to ?? yMax;
   const x = (i) => (i / xMax) * (w - 2 * pad) + pad;
   const y = (v) => h - pad - (v / yMax) * (h - 2 * pad);
@@ -74,11 +76,11 @@ export default function DamageCurveChart({ curve, nSamples }) {
           {t.label}
         </div>
       ))}
-      {[0, ...tiers.filter((t) => t.from > 0).map((t) => t.from)].map((v) => (
+      {[0, ...tiers.filter((t) => t.from > 0).map((t) => t.from), AXIS_TOP].map((v) => (
         <div
           key={v}
           className="mono"
-          style={{ position: 'absolute', left: 6, top: y(v) - 15, fontSize: 10.5, color: 'var(--gx-faint)', pointerEvents: 'none' }}
+          style={{ position: 'absolute', left: 6, top: Math.max(y(v) - 15, 0), fontSize: 10.5, color: 'var(--gx-faint)', pointerEvents: 'none' }}
         >
           {v.toFixed(1)}
         </div>
