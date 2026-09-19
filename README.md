@@ -50,6 +50,23 @@ submission-shaped `predictions.zip`.
 The raw datasets are not in the repo (`data/` is gitignored); mirror the organisers'
 `02_Datasets/` layout into `data/`.
 
+## Second frontend (optional, not the graded submission)
+
+[`webapp/`](webapp/) is a fuller, actively-developed second presentation layer for the same four
+models — a FastAPI backend plus a React frontend, wrapping the exact `subsystems/*` predict
+functions and `app/reliability.py` text the Streamlit app uses, never re-deriving results. It adds
+batch upload, named/saved runs with team notes, per-subsystem history, and an inline glossary for
+engineers new to the dataset, and ships as one deployable container (Node build stage + FastAPI
+serving the built assets — see [`webapp/README.md`](webapp/README.md) for Cloud Run instructions).
+
+**This does not change what was scored** — `app/` (Streamlit) is the submission per the spec's
+required tree, and is what the organisers ran.
+
+```bash
+uvicorn webapp.backend.main:app --reload --port 8000   # backend, from the repo root
+cd webapp/frontend && npm install && npm run dev        # frontend, http://localhost:5173
+```
+
 ## Test
 
 ```bash
@@ -90,6 +107,8 @@ scripts/                  validate_submission.py, package_submission.py
 references/               organisers' problem statement and the four subsystem Info Kits
 Optional_Items/           spec item 4.2: per-subsystem code and model copies, write-up (tracked, generated)
 predictions/              generated *_predictions.csv (gitignored); predictions.zip is at the root (tracked)
+webapp/                   optional second frontend (FastAPI + React) for the same models — not
+                          part of the graded submission; see webapp/README.md
 ```
 
 Each `subsystems/<name>/PLAN.md` records the data facts, the method, every experiment run

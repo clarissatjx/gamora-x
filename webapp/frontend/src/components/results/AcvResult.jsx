@@ -14,31 +14,10 @@ import { RELIABILITY_NOTE } from '../../reliabilityNotes';
 import { buildSavedEntry } from '../../utils/savedEntry';
 import { downloadCsv } from '../../utils/csv';
 
-const SCORE_EXPLAINER_PARAGRAPHS = [
-  "Each car's score is worked out by comparing it only against its 7 neighbours on the same "
-    + "train — never against a fixed pass/fail threshold. Two clues are combined:",
-  "Clue 1 — the physics gap. For every car, take (cabin temperature − cooling setpoint) "
-    + "averaged over the timestamps it's actively in a cooling mode. This is the direct sign "
-    + "of a leak: a unit that's lost refrigerant can't pull its cabin down to target, so this "
-    + "gap runs positive and large for the faulty car.",
-  "Clue 2 — the heuristic. Around 25 individual measurements are computed per car, grouped "
-    + "into a few categories: temperature deviation, refrigerant pressure deviation (where the "
-    + "file has it), control-mode behaviour (how often it disagrees with or switches modes "
-    + "relative to peers), and fault/invalid-reading flags. Each measurement is converted into "
-    + "'how far this car sits from the group's average, in the group's own spread' (a z-score "
-    + "against the other 7 cars in that file), and only counted when the car is worse than "
-    + "average — being unusually quiet on one measurement shouldn't cancel out being loud on "
-    + "another. These ~25 z-scored measurements are then combined into one number as a "
-    + "weighted average, with weights chosen by how strong a leak symptom each measurement is: "
-    + "temperature, pressure, and fault-related measurements carry the most weight (around "
-    + "1.0–1.5), control-mode measurements carry medium weight (around 0.8–1.2), and smaller/"
-    + "indirect signals like door-closed disagreement carry the least (around 0.5).",
-  "Both clues are z-scored within the file and averaged together 50/50 into one final score "
-    + "per car. A higher score just means 'stands out more from its neighbours on this train' "
-    + "— so it's normal for more than one car to score positive even though only one is ever "
-    + "actually faulty; what matters is which car scores highest, since that ordering is what "
-    + "gets submitted as the ranking.",
-];
+const SCORE_EXPLAINER = "Each number is that car's anomaly score rescaled to 0–1 for this train, "
+  + "combining how far above its cooling setpoint the cabin runs with how unusual its control "
+  + "behaviour looks next to the other 7 cars. 1.00 is the most suspicious car here, 0.00 the "
+  + "least — only the ordering matters, not the raw gap between numbers.";
 
 // The full "here's what we found" body for an ACV result — shared by the live page and the
 // Saved tab so a saved snapshot gets the exact same ranking/chart, not a stripped summary.
@@ -80,24 +59,20 @@ export default function AcvResult({ result, isSaved, onSave, onRemove, onUploadN
 
       <Panel heading="Ranked cars — most to least likely leak">
         <RankingBars scores={result.scores} />
-        {SCORE_EXPLAINER_PARAGRAPHS.map((text, i) => (
-          <p key={i} className="gx-prose" style={{
-            marginTop: i === 0 ? 14 : 8,
-            paddingTop: i === 0 ? 12 : undefined,
-            borderTop: i === 0 ? '1px solid var(--gx-border)' : undefined,
-            fontSize: 13, color: 'var(--gx-muted)',
-          }}>
-            <Glossed text={text} />
-          </p>
-        ))}
+        <p className="gx-prose" style={{
+          marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--gx-border)',
+          fontSize: 13, color: 'var(--gx-muted)',
+        }}>
+          <Glossed text={SCORE_EXPLAINER} />
+        </p>
       </Panel>
 
       {result.chart ? (
         <Panel
           heading="Cabin temperature vs setpoint, cooling mode"
           sub={compareCar === 'all'
-            ? 'Dashed line is the setpoint. Red is the top-ranked car; the grey band spans the other cars.'
-            : `Dashed line is the setpoint. Red is car ${result.top}; blue is car ${compareCar}.`}
+            ? 'Dashed line is the cooling setpoint. Red is the top-ranked car; the grey band spans the other cars.'
+            : `Dashed line is the cooling setpoint. Red is car ${result.top}; blue is car ${compareCar}.`}
           right={
             <select
               className="mono"
