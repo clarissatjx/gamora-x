@@ -122,7 +122,10 @@ export default function RailPage({
 
       {result && (
         <>
-          <RailResult result={result} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />
+          <RailResult
+            result={result} isSaved={isSaved} onSave={onSave} onRemove={onRemove}
+            onUploadNew={runFile} uploading={loading}
+          />
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="gx-btn gx-btn-accent" onClick={() => downloadRailCsv(result)}>⬇ Download CSV</button>

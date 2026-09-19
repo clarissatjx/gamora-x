@@ -7,6 +7,7 @@ import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
 import SaveButton from '../SaveButton';
 import StressChart from '../StressChart';
+import UploadNewButton from '../UploadNewButton';
 import Verdict from '../Verdict';
 import { RELIABILITY_NOTE } from '../../reliabilityNotes';
 import { buildSavedEntry } from '../../utils/savedEntry';
@@ -14,14 +15,17 @@ import { downloadCsv } from '../../utils/csv';
 
 // The full "here's what we found" body for an SHM result — shared by the live page and the
 // Saved tab so a saved snapshot gets the exact same chart/table, not a stripped summary.
-export default function ShmResult({ result, isSaved, onSave, onRemove }) {
+export default function ShmResult({ result, isSaved, onSave, onRemove, onUploadNew, uploading }) {
   const entry = buildSavedEntry('shm', result);
   return (
     <>
       <Banner
         text={`${result.file_id} accepted — ${result.n_samples.toLocaleString()} samples, ${
           result.n_reversals.toLocaleString()} reversals, ${result.n_cycles.toFixed(0)} rainflow cycles. Damage estimated.`}
-        right={isSaved && <SaveButton entry={entry} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />}
+        right={<>
+          {onUploadNew && <UploadNewButton accept=".csv" onFile={onUploadNew} loading={uploading} />}
+          {isSaved && <SaveButton entry={entry} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />}
+        </>}
       />
       {result.implausible && (
         <div className="gx-alert gx-alert-amber">

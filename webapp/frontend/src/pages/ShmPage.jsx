@@ -109,7 +109,10 @@ export default function ShmPage({
 
       {result && (
         <>
-          <ShmResult result={result} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />
+          <ShmResult
+            result={result} isSaved={isSaved} onSave={onSave} onRemove={onRemove}
+            onUploadNew={runFile} uploading={loading}
+          />
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="gx-btn gx-btn-accent" onClick={() => downloadShmCsv(result)}>⬇ Download CSV</button>

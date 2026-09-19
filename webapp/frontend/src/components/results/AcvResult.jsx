@@ -7,6 +7,7 @@ import Panel from '../Panel';
 import Pill from '../Pill';
 import RankingBars from '../RankingBars';
 import SaveButton from '../SaveButton';
+import UploadNewButton from '../UploadNewButton';
 import Verdict from '../Verdict';
 import { COLORS } from '../../theme';
 import { RELIABILITY_NOTE } from '../../reliabilityNotes';
@@ -15,14 +16,17 @@ import { downloadCsv } from '../../utils/csv';
 
 // The full "here's what we found" body for an ACV result — shared by the live page and the
 // Saved tab so a saved snapshot gets the exact same ranking/chart, not a stripped summary.
-export default function AcvResult({ result, isSaved, onSave, onRemove }) {
+export default function AcvResult({ result, isSaved, onSave, onRemove, onUploadNew, uploading }) {
   const entry = buildSavedEntry('acv', result);
   return (
     <>
       <Banner
         text={`${result.file_id} accepted — ${result.n_cars} cars over ${result.hours.toFixed(1)} h. `
           + `Ranking complete: car ${result.top} most likely faulty.`}
-        right={isSaved && <SaveButton entry={entry} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />}
+        right={<>
+          {onUploadNew && <UploadNewButton accept=".xlsx" onFile={onUploadNew} loading={uploading} />}
+          {isSaved && <SaveButton entry={entry} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />}
+        </>}
       />
 
       <Verdict

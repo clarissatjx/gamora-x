@@ -109,7 +109,10 @@ export default function DoorPage({
 
       {result && (
         <>
-          <DoorResult result={result} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />
+          <DoorResult
+            result={result} isSaved={isSaved} onSave={onSave} onRemove={onRemove}
+            onUploadNew={runFile} uploading={loading}
+          />
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="gx-btn gx-btn-accent" onClick={() => downloadDoorCsv(result)}>⬇ Download CSV</button>

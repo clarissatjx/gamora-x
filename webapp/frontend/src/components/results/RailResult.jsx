@@ -4,6 +4,7 @@ import Metrics from '../Metrics';
 import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
 import SaveButton from '../SaveButton';
+import UploadNewButton from '../UploadNewButton';
 import Verdict from '../Verdict';
 import ChannelChart from '../ChannelChart';
 import { COLORS } from '../../theme';
@@ -16,7 +17,7 @@ const CLASS_COLOR = { Normal: COLORS.green, 'Side I': COLORS.accent, 'Side II': 
 // The full "here's what we found" body for a Rail Corrugation result — shared by the live
 // page and the Saved tab so a saved snapshot gets the exact same chart/table, not a
 // stripped summary.
-export default function RailResult({ result, isSaved, onSave, onRemove }) {
+export default function RailResult({ result, isSaved, onSave, onRemove, onUploadNew, uploading }) {
   const entry = buildSavedEntry('rail', result);
   return (
     <>
@@ -28,7 +29,10 @@ export default function RailResult({ result, isSaved, onSave, onRemove }) {
         }`}
         color={result.stationary ? COLORS.dim : CLASS_COLOR[result.csv_prediction]}
         icon={result.stationary ? '?' : (result.csv_prediction !== 'Normal' ? '!' : '✓')}
-        right={isSaved && <SaveButton entry={entry} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />}
+        right={<>
+          {onUploadNew && <UploadNewButton accept=".csv" onFile={onUploadNew} loading={uploading} />}
+          {isSaved && <SaveButton entry={entry} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />}
+        </>}
       />
 
       <Verdict

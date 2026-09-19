@@ -5,6 +5,7 @@ import Metrics from '../Metrics';
 import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
 import SaveButton from '../SaveButton';
+import UploadNewButton from '../UploadNewButton';
 import Verdict from '../Verdict';
 import DoorChart from '../DoorChart';
 import Glossed from '../Glossed';
@@ -19,7 +20,7 @@ const STATUS_COLOR = { Normal: COLORS.green, [ABNORMAL]: COLORS.red };
 
 // The full "here's what we found" body for a Door result — shared by the live page and the
 // Saved tab so a saved snapshot gets the exact same chart/table, not a stripped summary.
-export default function DoorResult({ result, isSaved, onSave, onRemove }) {
+export default function DoorResult({ result, isSaved, onSave, onRemove, onUploadNew, uploading }) {
   const entry = buildSavedEntry('door', result);
   const abnormalCycles = result.evidence_by_cycle
     ? Object.keys(result.evidence_by_cycle).map(Number).sort((a, b) => a - b)
@@ -33,7 +34,10 @@ export default function DoorResult({ result, isSaved, onSave, onRemove }) {
         text={`${result.file_id} accepted — ${result.n_rows.toLocaleString()} rows, ${
           Math.floor(result.duration_s / 60)} min ${(result.duration_s % 60).toFixed(1)} s of stream. ${
           result.n_cycles} cycles detected.`}
-        right={isSaved && <SaveButton entry={entry} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />}
+        right={<>
+          {onUploadNew && <UploadNewButton accept=".csv" onFile={onUploadNew} loading={uploading} />}
+          {isSaved && <SaveButton entry={entry} isSaved={isSaved} onSave={onSave} onRemove={onRemove} />}
+        </>}
       />
 
       <Verdict
