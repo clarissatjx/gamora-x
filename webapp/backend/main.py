@@ -591,6 +591,27 @@ def delete_note(note_id: int):
     return {"ok": True}
 
 
+@app.get("/api/reliability")
+def reliability_detail():
+    """The full, precisely-sourced reliability text from app/reliability.py — every number here
+    traces back to a subsystem's PLAN.md. The main result pages show a one-line distilled
+    version instead (reliabilityNotes.js on the frontend); this is the "Under the hood" page's
+    single source of truth for the real methodology, so it's served live rather than copied
+    into JS where it could drift out of sync."""
+    return {
+        "door": {"note": rel.DOOR_RELIABILITY_NOTE},
+        "acv": {"note": rel.ACV_RELIABILITY_NOTE},
+        "shm": {"note": rel.SHM_RELIABILITY_NOTE},
+        "rail": {
+            "note": rel.RAIL_RELIABILITY_NOTE,
+            "classes": [
+                {"label": cls, **rel.RAIL_RELIABILITY[cls], "line": rel.rail_class_line(cls)}
+                for cls in rel.RAIL_RELIABILITY
+            ],
+        },
+    }
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}

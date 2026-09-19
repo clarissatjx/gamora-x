@@ -5,6 +5,7 @@ import RailPage from './pages/RailPage';
 import SavedPage from './pages/SavedPage';
 import ShmPage from './pages/ShmPage';
 import StartPage from './pages/StartPage';
+import UnderTheHoodPage from './pages/UnderTheHoodPage';
 import HistoryPanel from './components/HistoryPanel';
 import useRunHistory from './hooks/useRunHistory';
 import useSavedResults from './hooks/useSavedResults';
@@ -20,7 +21,10 @@ const NAV = [
   { key: 'shm', label: 'SHM' },
 ];
 
-const PAGES = { start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage, saved: SavedPage };
+const PAGES = {
+  start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage,
+  saved: SavedPage, hood: UnderTheHoodPage,
+};
 const DOWNLOAD_CSV = { door: downloadDoorCsv, acv: downloadAcvCsv, rail: downloadRailCsv, shm: downloadShmCsv };
 const HISTORY_PANEL_WIDTH = 340;
 
@@ -128,6 +132,16 @@ export default function App() {
               </button>
             </div>
           ))}
+
+          <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--gx-border)' }}>
+            <button
+              onClick={() => setView('hood')}
+              className={`gx-nav-btn${view === 'hood' ? ' active' : ''}`}
+            >
+              <span className="gx-nav-flag" />
+              <span className="gx-nav-label">Under the hood</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="gx-sidebar-rail">
