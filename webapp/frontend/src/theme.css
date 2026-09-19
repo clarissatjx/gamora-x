@@ -356,6 +356,9 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
   .gx-gauge { --gx-gauge-gutter: 104px; }
   .gx-gauge-name { display: block; line-height: 1.3; }
   .gx-gauge-n { display: none; }
+  /* Three labels do not fit across a narrow track: the centre one collides with the right
+     end label. The two ends carry more meaning, so the centre reference goes. */
+  .gx-gauge-tick { display: none; }
 }
 
 /* Caveat - a read-this-first note between the verdict and the numbers. Amber rather than
