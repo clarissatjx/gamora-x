@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Glossed from '../components/Glossed';
 import Panel from '../components/Panel';
+import AsymGauge from '../components/AsymGauge';
 import { fetchReliabilityDetail } from '../utils/reliabilityDetail';
 
 const SUBS = [
@@ -72,6 +73,20 @@ function SubDetail({ s, detail }) {
         <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-muted)' }}>How it&rsquo;s scored</div>
         <p className="gx-prose" style={{ marginTop: 4 }}><Glossed text={s.scoring} /></p>
       </div>
+
+      {s.key === 'rail' && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--gx-border)' }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-muted)' }}>
+            Why one rail is harder to spot than the other
+          </div>
+          <p className="gx-prose" style={{ marginTop: 4, marginBottom: 14 }}>
+            Corrugation on one rail should make that side&rsquo;s axle boxes noisier. Plotting
+            that imbalance for every labelled recording shows why that works for one side and
+            not the other.
+          </p>
+          <AsymGauge />
+        </div>
+      )}
 
       <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--gx-border)' }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-muted)' }}>Reliability, in detail</div>

@@ -6,7 +6,7 @@ import Panel from '../Panel';
 import SaveButton from '../SaveButton';
 import UploadNewButton from '../UploadNewButton';
 import Verdict from '../Verdict';
-import AsymGauge from '../AsymGauge';
+import ClassProbabilities from '../ClassProbabilities';
 import { COLORS } from '../../theme';
 import { RELIABILITY_NOTE } from '../../reliabilityNotes';
 import { downloadCsv } from '../../utils/csv';
@@ -64,19 +64,18 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
         ]}
       />
 
-      <Panel
-        heading="Where this recording sits"
-        sub="Side imbalance — Side I's vibration energy minus Side II's — against the three groups of labelled recordings. One of several signals the model weighs, not the verdict itself."
-      >
-        <AsymGauge
-          value={result.asym}
-          bands={result.asym_bands}
-          axis={result.asym_axis}
-          corroborates={result.asym_context?.corroborates}
-          prediction={result.csv_prediction}
-          verdictColor={result.stationary ? COLORS.dim : CLASS_COLOR[result.csv_prediction]}
-        />
-      </Panel>
+      {!result.stationary && (
+        <Panel
+          heading="How the model scored this recording"
+          sub="What the model weighed each answer at. The gap between the top two is how close the call was."
+        >
+          <ClassProbabilities
+            probabilities={result.probabilities}
+            reliability={result.reliability}
+            predicted={result.csv_prediction}
+          />
+        </Panel>
+      )}
 
       <DataTable
         headers={['file_id', 'prediction', 'confidence', 'speed km/h']}

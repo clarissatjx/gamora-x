@@ -28,12 +28,15 @@ const FALLBACK_BANDS = [
 ];
 const FALLBACK_AXIS = [-0.20, 0.17];
 
+// `value` is optional: with one, this marks where a specific recording sits; without one it
+// is a pure explainer of why the two fault classes are not equally detectable, which is how
+// the "Under the hood" page uses it.
 export default function AsymGauge({ value, bands, axis, corroborates, prediction, verdictColor }) {
-  if (!Number.isFinite(value)) return null;
+  const hasValue = Number.isFinite(value);
   const useBands = bands?.length ? bands : FALLBACK_BANDS;
   const [lo, hi] = axis?.length === 2 ? axis : FALLBACK_AXIS;
   const pct = (v) => Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
-  const here = pct(value);
+  const here = hasValue ? pct(value) : null;
   const ticks = [-0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15];
 
   // Where healthy and Side I overlap, this axis genuinely cannot separate them — and that is
@@ -43,11 +46,12 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
   const blur = healthy && sideI
     ? { lo: Math.max(healthy.lo, sideI.lo), hi: Math.min(healthy.hi, sideI.hi) }
     : null;
-  const inBlur = blur && value >= blur.lo && value <= blur.hi;
+  const inBlur = hasValue && blur && value >= blur.lo && value <= blur.hi;
 
   // A centred label overflows the panel at the extremes — pin it to whichever edge stays on
   // screen, the same way the old channel tooltip did.
-  const anchorStyle = here < 18 ? { transform: 'none' }
+  const anchorStyle = !hasValue ? undefined
+    : here < 18 ? { transform: 'none' }
     : here > 82 ? { transform: 'translateX(-100%)' }
     : undefined;
   const trackLeft = (p) =>
@@ -57,6 +61,7 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
     <div className="gx-gauge">
       {/* The marker label gets its own strip rather than floating over the bands, so it
           cannot land on the panel text above or the axis below. */}
+      {hasValue && (
       <div className="gx-gauge-head">
         <div className="gx-gauge-marker" style={{ left: trackLeft(here) }}>
           <span
@@ -71,6 +76,7 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
           />
         </div>
       </div>
+      )}
 
       <div className="gx-gauge-rows">
         {blur && (
@@ -84,7 +90,7 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
         )}
         {useBands.map((b) => {
           const color = BAND_COLOR[b.label] ?? 'var(--gx-idle-bar)';
-          const inside = value >= b.lo && value <= b.hi;
+          const inside = hasValue && value >= b.lo && value <= b.hi;
           return (
             <div className="gx-gauge-row" key={b.label}>
               <div className="gx-gauge-name" style={{ color: inside ? 'var(--gx-text)' : undefined }}>
@@ -105,12 +111,14 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
             </div>
           );
         })}
-        <div className="gx-gauge-needle" style={{ left: trackLeft(here) }}>
-          <div
-            className="gx-gauge-needle-line"
-            style={{ background: verdictColor || 'var(--gx-text)' }}
-          />
-        </div>
+        {hasValue && (
+          <div className="gx-gauge-needle" style={{ left: trackLeft(here) }}>
+            <div
+              className="gx-gauge-needle-line"
+              style={{ background: verdictColor || 'var(--gx-text)' }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="gx-gauge-axis">
@@ -136,9 +144,10 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
       <p className="gx-gauge-caption">
         Each band covers roughly the middle two-thirds of that group of labelled recordings.
         Side II sits clear of healthy; Side I sits on top of it.
-        {inBlur && ' This recording falls in the overlap, so the verdict above rests on the other signals the model weighs, not on this one.'}
-        {corroborates === false && !inBlur && prediction && prediction !== 'Normal'
+        {hasValue && inBlur && ' This recording falls in the overlap, so the verdict above rests on the other signals the model weighs, not on this one.'}
+        {hasValue && corroborates === false && !inBlur && prediction && prediction !== 'Normal'
           && ` Its imbalance does not single out ${prediction} on its own — the model reached that verdict from the wider vibration pattern.`}
+        {!hasValue && ' That is why Side II is detected well and Side I is not: 63% of all recordings land in the overlap, where this measure cannot separate them.'}
       </p>
     </div>
   );
