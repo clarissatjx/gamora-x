@@ -7,6 +7,8 @@ so far (Phase 0 prototype); Door/ACV/SHM follow the same shape once this is vali
 
 Run from the repo root: `uvicorn webapp.backend.main:app --reload --port 8000`
 """
+from __future__ import annotations
+
 import gzip
 import io
 import sqlite3
@@ -407,6 +409,7 @@ def build_acv_result(data: bytes, file_id: str) -> dict:
         sm = series.rolling(ACV_SMOOTH, min_periods=1).mean()
         step = max(1, len(sm) // ACV_CHART_POINTS)
         sm = sm.iloc[::step]
+        other_ids = [c for c in sm.columns if c != top]
         points = []
         for i, (_, row) in enumerate(sm.iterrows()):
             others = row.drop(labels=[top], errors="ignore").dropna()
@@ -415,8 +418,11 @@ def build_acv_result(data: bytes, file_id: str) -> dict:
                 "top": None if pd.isna(row.get(top)) else float(row[top]),
                 "others_min": None if others.empty else float(others.min()),
                 "others_max": None if others.empty else float(others.max()),
+                # per-car values so the frontend can compare the top car against one
+                # individually-selected car, not just the min/max band of all of them
+                "cars": {cid: (None if pd.isna(row.get(cid)) else float(row[cid])) for cid in other_ids},
             })
-        chart = {"top_car": top, "points": points}
+        chart = {"top_car": top, "other_ids": other_ids, "points": points}
 
     rows = [{"rank": i, "car": car, "score": float(s)} for i, (car, s) in enumerate(scores.items(), start=1)]
 
