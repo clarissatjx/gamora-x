@@ -10,6 +10,7 @@ import SaveButton from '../SaveButton';
 import Verdict from '../Verdict';
 import { COLORS } from '../../theme';
 import { buildSavedEntry } from '../../utils/savedEntry';
+import { downloadCsv } from '../../utils/csv';
 
 // The full "here's what we found" body for an ACV result — shared by the live page and the
 // Saved tab so a saved snapshot gets the exact same ranking/chart, not a stripped summary.
@@ -79,4 +80,8 @@ export default function AcvResult({ result, isSaved, onSave, onRemove }) {
       />
     </>
   );
+}
+
+export function downloadAcvCsv(result) {
+  downloadCsv('acv_predictions.csv', ['file_id', 'ranked_cars'], [[result.file_id, result.ranked_cars.join('|')]]);
 }

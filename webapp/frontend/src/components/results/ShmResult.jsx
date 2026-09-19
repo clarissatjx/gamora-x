@@ -8,6 +8,7 @@ import SaveButton from '../SaveButton';
 import StressChart from '../StressChart';
 import Verdict from '../Verdict';
 import { buildSavedEntry } from '../../utils/savedEntry';
+import { downloadCsv } from '../../utils/csv';
 
 // The full "here's what we found" body for an SHM result — shared by the live page and the
 // Saved tab so a saved snapshot gets the exact same chart/table, not a stripped summary.
@@ -70,4 +71,8 @@ export default function ShmResult({ result, isSaved, onSave, onRemove }) {
       />
     </>
   );
+}
+
+export function downloadShmCsv(result) {
+  downloadCsv('shm_predictions.csv', ['file_id', 'prediction'], [[result.file_id, result.damage.toFixed(6)]]);
 }

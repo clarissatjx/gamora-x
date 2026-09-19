@@ -10,6 +10,7 @@ import Glossed from '../Glossed';
 import Pill from '../Pill';
 import { COLORS } from '../../theme';
 import { buildSavedEntry } from '../../utils/savedEntry';
+import { downloadCsv } from '../../utils/csv';
 
 const ABNORMAL = 'Abnormal resistance';
 const STATUS_COLOR = { Normal: COLORS.green, [ABNORMAL]: COLORS.red };
@@ -79,5 +80,13 @@ export default function DoorResult({ result, isSaved, onSave, onRemove }) {
         footer="confidence is informational — only start_time, end_time and prediction are scored."
       />
     </>
+  );
+}
+
+export function downloadDoorCsv(result) {
+  downloadCsv(
+    'door_predictions.csv',
+    ['start_time', 'end_time', 'prediction', 'confidence'],
+    result.cycles.map((c) => [c.start_time, c.end_time, c.prediction, c.confidence]),
   );
 }

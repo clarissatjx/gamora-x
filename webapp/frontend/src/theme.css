@@ -242,6 +242,43 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
   margin-top: 1px;
 }
 
+/* ---------------- run-history drawer (the "second sidebar") ---------------- */
+.gx-drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(4, 6, 9, 0.55); z-index: 40;
+}
+.gx-drawer {
+  position: fixed; top: 0; right: 0; height: 100%; width: 380px; max-width: 92vw;
+  background: var(--gx-panel); border-left: 1px solid var(--gx-border);
+  display: flex; flex-direction: column; z-index: 41;
+  transform: translateX(100%); transition: transform 180ms ease;
+  box-shadow: -12px 0 30px rgba(0, 0, 0, 0.4);
+}
+.gx-drawer.open { transform: translateX(0); }
+.gx-drawer-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  padding: 18px 20px; border-bottom: 1px solid var(--gx-border); flex-shrink: 0;
+}
+.gx-drawer-body { flex: 1; overflow-y: auto; padding: 4px 20px; }
+.gx-drawer-foot { padding: 14px 20px; border-top: 1px solid var(--gx-border); flex-shrink: 0; }
+.gx-hist-row {
+  display: flex; justify-content: space-between; gap: 12px; padding: 14px 0;
+  border-bottom: 1px solid var(--gx-border-soft);
+}
+
+/* ---------------- collapsible main sidebar ---------------- */
+.gx-sidebar-toggle {
+  all: unset; box-sizing: border-box; width: 30px; height: 30px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: 4px;
+  color: var(--gx-faint); border: 1px solid var(--gx-border); flex-shrink: 0;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.gx-sidebar-toggle:hover { color: var(--gx-text); border-color: var(--gx-border-hover); }
+.gx-sidebar-toggle:focus-visible { outline: 2px solid var(--gx-accent); outline-offset: 2px; }
+.gx-sidebar-rail {
+  width: 52px; flex-shrink: 0; border-right: 1px solid var(--gx-border);
+  padding: 20px 0; display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+
 /* ---------------- glossary tooltip ---------------- */
 .gx-term { position: relative; border-bottom: 1px dotted var(--gx-border-hover); cursor: help; }
 .gx-term-tip {

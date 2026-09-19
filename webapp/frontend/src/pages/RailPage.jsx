@@ -2,11 +2,13 @@ import { useState } from 'react';
 import Banner from '../components/Banner';
 import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
+import HistoryDrawer from '../components/HistoryDrawer';
 import SaveButton from '../components/SaveButton';
 import Spinner from '../components/Spinner';
 import Term from '../components/Term';
 import UploadModeToggle from '../components/UploadModeToggle';
 import RailResult, { downloadRailCsv } from '../components/results/RailResult';
+import useRunHistory from '../hooks/useRunHistory';
 import { COLORS } from '../theme';
 import { buildSavedEntry } from '../utils/savedEntry';
 
@@ -27,6 +29,8 @@ export default function RailPage({ isSaved, onSave, onRemove }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('single');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { history, record, clear } = useRunHistory('rail');
 
   const runFile = async (file) => {
     setLoading(true);
@@ -36,6 +40,7 @@ export default function RailPage({ isSaved, onSave, onRemove }) {
       form.append('file', file);
       const data = await callApi('/api/rail/predict', { method: 'POST', body: form });
       setResult(data);
+      record(data);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -47,7 +52,9 @@ export default function RailPage({ isSaved, onSave, onRemove }) {
     setLoading(true);
     setError(null);
     try {
-      setResult(await callApi('/api/rail/sample'));
+      const data = await callApi('/api/rail/sample');
+      setResult(data);
+      record(data);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -57,11 +64,18 @@ export default function RailPage({ isSaved, onSave, onRemove }) {
 
   return (
     <div>
-      <h1 className="gx-h1">Rail Corrugation — 3-class classification</h1>
-      <p className="gx-sub">
-        Classifies a one-second axle-box recording Normal, Side I or Side II from 64
-        vibration and shock channels.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div>
+          <h1 className="gx-h1">Rail Corrugation — 3-class classification</h1>
+          <p className="gx-sub">
+            Classifies a one-second axle-box recording Normal, Side I or Side II from 64
+            vibration and shock channels.
+          </p>
+        </div>
+        <button className="gx-btn" onClick={() => setHistoryOpen(true)}>
+          History{history.length > 0 && <span className="gx-nav-tag">{history.length}</span>}
+        </button>
+      </div>
       <div className="gx-footnote">
         Official <Term term="held-out">held-out</Term> score <b style={{ color: COLORS.accent }}>0.888</b> vs our own
         <Term term="cross-validation"> cross-validation</Term> estimate <b style={{ color: COLORS.text }}>0.81 <Term term="macro-F1">macro-F1</Term></b> — measured
@@ -102,6 +116,7 @@ export default function RailPage({ isSaved, onSave, onRemove }) {
               isSaved={isSaved}
               onSave={onSave}
               onRemove={onRemove}
+              onResult={record}
             />
           )}
         </>
@@ -120,6 +135,16 @@ export default function RailPage({ isSaved, onSave, onRemove }) {
           </div>
         </>
       )}
+
+      <HistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        label="Rail Corrugation"
+        history={history}
+        onClear={clear}
+        onView={(entry) => { setResult(entry.result); setHistoryOpen(false); }}
+        onDownload={(entry) => downloadRailCsv(entry.result)}
+      />
     </div>
   );
 }

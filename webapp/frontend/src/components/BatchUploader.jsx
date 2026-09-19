@@ -60,7 +60,7 @@ function BatchRow({ item, subsystem, expanded, onToggle, isSaved, onSave, onRemo
 export default function BatchUploader({
   subsystem, accept, label, sub, predictPath,
   ResultComponent, csvFileName, csvHeaders, buildRows,
-  isSaved, onSave, onRemove,
+  isSaved, onSave, onRemove, onResult,
 }) {
   const [items, setItems] = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -78,6 +78,7 @@ export default function BatchUploader({
         form.append('file', files[i]);
         const result = await callApi(predictPath, { method: 'POST', body: form });
         setItems((prev) => prev.map((it, k) => (k === i ? { ...it, status: 'done', result } : it)));
+        onResult?.(result);
       } catch (e) {
         setItems((prev) => prev.map((it, k) => (k === i ? { ...it, status: 'error', error: e.message } : it)));
       }

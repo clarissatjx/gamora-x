@@ -19,71 +19,102 @@ const NAV = [
 
 const PAGES = { start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage, saved: SavedPage };
 
+function readSidebarOpen() {
+  try {
+    return localStorage.getItem('gamora:sidebar-open') !== '0';
+  } catch {
+    return true;
+  }
+}
+
 export default function App() {
   const [view, setView] = useState('start');
+  const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
   const current = NAV.find((n) => n.key === view);
   const { saved, save, remove, isSaved } = useSavedResults();
 
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      try { localStorage.setItem('gamora:sidebar-open', next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <div style={{
-        width: 246, flexShrink: 0, borderRight: '1px solid var(--gx-border)',
-        padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 4,
-      }}>
-        <div className="gx-brand" style={{ marginBottom: 22 }}>
-          <div className="gx-mark" />
-          <div>
-            <div className="gx-name">gamora</div>
-            <div className="gx-name-sub">Condition monitoring</div>
+      {sidebarOpen ? (
+        <div style={{
+          width: 246, flexShrink: 0, borderRight: '1px solid var(--gx-border)',
+          padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 4,
+        }}>
+          <div className="gx-brand" style={{ marginBottom: 22, justifyContent: 'space-between' }}>
+            <div className="gx-brand">
+              <div className="gx-mark" />
+              <div>
+                <div className="gx-name">gamora</div>
+                <div className="gx-name-sub">Condition monitoring</div>
+              </div>
+            </div>
+            <button className="gx-sidebar-toggle" onClick={toggleSidebar} title="Collapse sidebar" aria-label="Collapse sidebar">
+              ‹
+            </button>
           </div>
-        </div>
 
-        <button
-          onClick={() => setView('start')}
-          className={`gx-nav-btn${view === 'start' ? ' active' : ''}`}
-        >
-          <span className="gx-nav-flag" />
-          <span className="gx-nav-label">Get started</span>
-        </button>
-
-        <button
-          onClick={() => setView('saved')}
-          className={`gx-nav-btn${view === 'saved' ? ' active' : ''}`}
-        >
-          <span className="gx-nav-flag" />
-          <span className="gx-nav-label">Saved</span>
-          {saved.length > 0 && <span className="gx-nav-tag">{saved.length}</span>}
-        </button>
-
-        <div style={{ margin: '12px 2px 6px', fontSize: 11, color: 'var(--gx-dim)', fontWeight: 600 }}>
-          Subsystems
-        </div>
-
-        {NAV.map((n) => (
           <button
-            key={n.key}
-            onClick={() => setView(n.key)}
-            className={`gx-nav-btn${view === n.key ? ' active' : ''}`}
+            onClick={() => setView('start')}
+            className={`gx-nav-btn${view === 'start' ? ' active' : ''}`}
           >
             <span className="gx-nav-flag" />
-            <span className="gx-nav-label">{n.label}</span>
-            <Term term={n.tag} className="gx-nav-tag">{n.tag}</Term>
+            <span className="gx-nav-label">Get started</span>
           </button>
-        ))}
 
-        {current && (
-          <div className="gx-side-meta">
-            <div className="gx-side-meta-row">
-              <span className="k">held-out score</span>
-              <span className="v" style={{ color: 'var(--gx-accent)' }}>{current.score}</span>
-            </div>
-            <div className="gx-side-meta-row">
-              <span className="k">submission file</span>
-              <span className="v">{current.csv}</span>
-            </div>
+          <button
+            onClick={() => setView('saved')}
+            className={`gx-nav-btn${view === 'saved' ? ' active' : ''}`}
+          >
+            <span className="gx-nav-flag" />
+            <span className="gx-nav-label">Saved</span>
+            {saved.length > 0 && <span className="gx-nav-tag">{saved.length}</span>}
+          </button>
+
+          <div style={{ margin: '12px 2px 6px', fontSize: 11, color: 'var(--gx-dim)', fontWeight: 600 }}>
+            Subsystems
           </div>
-        )}
-      </div>
+
+          {NAV.map((n) => (
+            <button
+              key={n.key}
+              onClick={() => setView(n.key)}
+              className={`gx-nav-btn${view === n.key ? ' active' : ''}`}
+            >
+              <span className="gx-nav-flag" />
+              <span className="gx-nav-label">{n.label}</span>
+              <Term term={n.tag} className="gx-nav-tag">{n.tag}</Term>
+            </button>
+          ))}
+
+          {current && (
+            <div className="gx-side-meta">
+              <div className="gx-side-meta-row">
+                <span className="k">held-out score</span>
+                <span className="v" style={{ color: 'var(--gx-accent)' }}>{current.score}</span>
+              </div>
+              <div className="gx-side-meta-row">
+                <span className="k">submission file</span>
+                <span className="v">{current.csv}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="gx-sidebar-rail">
+          <div className="gx-mark" style={{ width: 24, height: 24 }} />
+          <button className="gx-sidebar-toggle" onClick={toggleSidebar} title="Open sidebar" aria-label="Open sidebar">
+            ›
+          </button>
+        </div>
+      )}
 
       <div style={{ flex: 1, padding: '24px 32px 56px', maxWidth: 1148 }}>
         <div className="gx-topbar">
