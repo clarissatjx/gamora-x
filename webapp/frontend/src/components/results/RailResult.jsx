@@ -46,13 +46,13 @@ export default function RailResult({ result, isSaved, onSave, onRemove }) {
       <Metrics
         items={[
           { label: 'Prediction', value: result.prediction,
-            note: result.stationary ? 'stationary rule' : 'gradient-boosted classifier',
+            note: result.stationary ? 'by rule — train not moving' : 'from the vibration pattern',
             color: result.stationary ? COLORS.dim : CLASS_COLOR[result.csv_prediction] },
           { label: 'Confidence', value: result.stationary ? 'rule' : `${(result.confidence_value * 100).toFixed(0)}%`,
-            note: result.stationary ? 'no wheel rotation detected' : 'class probability' },
+            note: result.stationary ? 'no wheel rotation detected' : 'how sure the model is' },
           { label: 'Recording speed', value: `${result.speed_kmh.toFixed(0)} km/h`, note: 'from the pulse channel' },
           { label: 'Side asymmetry', value: `${result.asym >= 0 ? '+' : ''}${result.asym.toFixed(3)}`,
-            note: 'Side I − Side II vibration RMS',
+            note: 'vibration strength, Side I vs Side II',
             color: result.csv_prediction !== 'Normal' ? CLASS_COLOR[result.csv_prediction] : undefined },
         ]}
       />

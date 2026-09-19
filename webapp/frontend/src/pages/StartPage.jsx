@@ -1,28 +1,31 @@
 import Banner from '../components/Banner';
 import Panel from '../components/Panel';
-import Term from '../components/Term';
 
 const SUBS = [
   {
-    key: 'door', name: 'Door', tag: 'IoU-F1', score: '1.000',
+    key: 'door',
+    name: 'Door',
     detects: 'Flags a cycle drawing more current or less back-EMF than healthy — added mechanical resistance.',
     input: 'Continuous door-controller recording (.csv). Cuts its own cycles.',
     normal: '"All cycles normal" in green.',
   },
   {
-    key: 'acv', name: 'ACV', tag: 'rank', score: '1.000',
+    key: 'acv',
+    name: 'ACV',
     detects: 'Ranks which of 8 cars is most likely losing refrigerant, from cabin temperature vs. its neighbours.',
     input: 'ACV telemetry workbook (.xlsx), all 8 cars, 30 s sampling.',
     normal: 'No healthy case — a car is always ranked top. Low margin means less certain, not clean.',
   },
   {
-    key: 'rail', name: 'Rail Corrugation', tag: 'macro-F1', score: '0.888',
+    key: 'rail',
+    name: 'Rail Corrugation',
     detects: 'Flags corrugation in a 1 s axle-box vibration recording, and which rail it’s on.',
     input: 'Axle-box recording (.csv): speed pulse + 64 channels, 10 kHz, 1 s.',
     normal: '"No corrugation detected" in green. Stationary trains read "Inconclusive."',
   },
   {
-    key: 'shm', name: 'SHM', tag: '1−MAPE', score: '0.974',
+    key: 'shm',
+    name: 'SHM',
     detects: 'Estimates how much fatigue life a structural point has used, from its stress time series.',
     input: 'One point’s stress time series (.csv, single headerless column).',
     normal: 'Near 0 is healthy. Near 1.0 means fatigue life is used up.',
@@ -32,13 +35,12 @@ const SUBS = [
 const READ_STEPS = [
   { h: 'Headline first', b: 'Plain English before any chart — "Side I corrugation detected," not a class name.' },
   { h: 'Tier + confidence pills', b: 'Tier is how urgently to act. Confidence is how sure the model is on this file.' },
-  { h: 'How reliable is this?', b: 'Real recall/precision for this model, sitting right under the verdict.' },
-  { h: 'Dotted underlines', b: 'Hover any jargon term for a plain definition, no lookup needed.' },
+  { h: 'How reliable is this?', b: 'This model’s real track record, sitting right under the verdict — not a marketing claim.' },
+  { h: 'Dotted underlines', b: 'Hover any unfamiliar word for a plain definition, no lookup needed.' },
 ];
 
 const CAVEATS = [
-  'Severity tiers are our own triage heuristic — no organiser standard sets these thresholds.',
-  'Held-out and cross-validation scores can disagree; they’re measured on different files.',
+  'Severity tiers (Monitor, Inspect soon, etc.) are a heuristic this team built — there’s no official maintenance standard behind them.',
   'Rail Corrugation on a stationary train reads "Inconclusive," never "Normal."',
   'A wrong file type is rejected with a reason — never a confident wrong answer.',
 ];
@@ -63,18 +65,7 @@ export default function StartPage({ onOpen }) {
               onClick={() => onOpen(s.key)}
               style={{ cursor: 'pointer', textAlign: 'left', font: 'inherit', color: 'inherit' }}
             >
-              <div className="gx-tile-head">
-                <div>
-                  <div className="gx-tile-name">{s.name}</div>
-                  <Term term={s.tag} className="mono" style={{ fontSize: 11, color: 'var(--gx-faint)' }}>
-                    {s.tag}
-                  </Term>
-                </div>
-                <div>
-                  <div className="gx-tile-score" style={{ color: 'var(--gx-accent)' }}>{s.score}</div>
-                  <div className="gx-tile-score-l">held-out</div>
-                </div>
-              </div>
+              <div className="gx-tile-name">{s.name}</div>
               <div className="gx-tile-detects">{s.detects}</div>
               <div className="gx-tile-need">
                 <div><b style={{ color: 'var(--gx-body)' }}>Needs</b> {s.input}</div>

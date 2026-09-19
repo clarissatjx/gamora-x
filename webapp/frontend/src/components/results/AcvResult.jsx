@@ -35,9 +35,9 @@ export default function AcvResult({ result, isSaved, onSave, onRemove }) {
 
       <Metrics
         items={[
-          { label: 'Most likely faulty', value: `Car ${result.top}`, note: `blend score ${result.scores[0].score >= 0 ? '+' : ''}${result.scores[0].score.toFixed(2)}`, color: COLORS.red },
+          { label: 'Most likely faulty', value: `Car ${result.top}`, note: `score ${result.scores[0].score >= 0 ? '+' : ''}${result.scores[0].score.toFixed(2)}`, color: COLORS.red },
           { label: 'Cars evaluated', value: String(result.n_cars), note: 'IDs read from column headers' },
-          { label: 'Margin to rank 2', value: result.margin.toFixed(2), note: `car ${result.runner_up} scores ${result.scores[1].score >= 0 ? '+' : ''}${result.scores[1].score.toFixed(2)}` },
+          { label: 'Gap to runner-up', value: result.margin.toFixed(2), note: `car ${result.runner_up} scores ${result.scores[1].score >= 0 ? '+' : ''}${result.scores[1].score.toFixed(2)}` },
           { label: 'Cabin above setpoint', value: result.gap_top === null ? '—' : `${result.gap_top >= 0 ? '+' : ''}${result.gap_top.toFixed(2)} °C`, note: `car ${result.top}, cooling mode`, color: result.gap_top > 0 ? COLORS.red : undefined },
         ]}
       />

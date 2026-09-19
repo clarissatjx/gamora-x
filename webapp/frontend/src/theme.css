@@ -191,10 +191,7 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
 }
 .gx-tile:hover, .gx-tile:focus-visible { border-color: var(--gx-accent); }
 .gx-tile:focus-visible { outline: 2px solid var(--gx-accent); outline-offset: 2px; }
-.gx-tile-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .gx-tile-name { font-family: 'Big Shoulders Display', sans-serif; font-weight: 700; font-size: 19px; line-height: 1.1; }
-.gx-tile-score { font-family: 'Big Shoulders Display', sans-serif; font-weight: 700; font-size: 26px; line-height: 1; text-align: right; }
-.gx-tile-score-l { font-size: 10.5px; color: var(--gx-faint); text-align: right; margin-top: 1px; }
 .gx-tile-detects { font-size: 13px; color: var(--gx-muted); margin-top: 7px; }
 .gx-tile-need { font-size: 12.5px; color: var(--gx-faint); border-top: 1px solid var(--gx-border); margin-top: 11px; padding-top: 9px; }
 
@@ -225,21 +222,6 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
 .gx-topbar {
   display: flex; align-items: center; justify-content: flex-end;
   padding-bottom: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--gx-border);
-}
-
-/* sidebar footer: styled like an equipment nameplate — the one place small caps/uppercase
-   are earned, since real gear nameplates read this way (MODEL / SERIAL / VOLTAGE). */
-.gx-side-meta {
-  margin-top: auto; padding-top: 14px; border-top: 1px solid var(--gx-border);
-  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--gx-faint);
-}
-.gx-side-meta-row { padding: 5px 0; }
-.gx-side-meta-row .k {
-  text-transform: uppercase; letter-spacing: 0.07em; font-size: 9.5px; color: var(--gx-dim);
-}
-.gx-side-meta-row .v {
-  display: block; color: var(--gx-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin-top: 1px;
 }
 
 /* ---------------- run-history panel (the "second sidebar") ---------------- */

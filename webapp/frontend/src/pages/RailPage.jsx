@@ -4,10 +4,8 @@ import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
 import SaveButton from '../components/SaveButton';
 import Spinner from '../components/Spinner';
-import Term from '../components/Term';
 import UploadModeToggle from '../components/UploadModeToggle';
 import RailResult, { downloadRailCsv } from '../components/results/RailResult';
-import { COLORS } from '../theme';
 import { buildSavedEntry } from '../utils/savedEntry';
 
 const BATCH_HEADERS = ['file_id', 'prediction'];
@@ -65,9 +63,8 @@ export default function RailPage({ isSaved, onSave, onRemove, result, setResult,
         vibration and shock channels.
       </p>
       <div className="gx-footnote">
-        Official <Term term="held-out">held-out</Term> score <b style={{ color: COLORS.accent }}>0.888</b> vs our own
-        <Term term="cross-validation"> cross-validation</Term> estimate <b style={{ color: COLORS.text }}>0.81 <Term term="macro-F1">macro-F1</Term></b> — measured
-        on different files, so the two can disagree; see &ldquo;How reliable is this?&rdquo; below.
+        This model&rsquo;s reliability was checked two different ways, and the two checks don&rsquo;t always
+        land on the same number — see &ldquo;How reliable is this?&rdquo; below for what that means for this result.
       </div>
 
       {!result && (

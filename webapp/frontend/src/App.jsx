@@ -6,7 +6,6 @@ import SavedPage from './pages/SavedPage';
 import ShmPage from './pages/ShmPage';
 import StartPage from './pages/StartPage';
 import HistoryPanel from './components/HistoryPanel';
-import Term from './components/Term';
 import useRunHistory from './hooks/useRunHistory';
 import useSavedResults from './hooks/useSavedResults';
 import { downloadAcvCsv } from './components/results/AcvResult';
@@ -14,13 +13,11 @@ import { downloadDoorCsv } from './components/results/DoorResult';
 import { downloadRailCsv } from './components/results/RailResult';
 import { downloadShmCsv } from './components/results/ShmResult';
 
-// Scores are the same held-out figures shown throughout the app (README, Streamlit sidebar) —
-// static here since they don't depend on any upload.
 const NAV = [
-  { key: 'door', label: 'Door', tag: 'IoU-F1', score: '1.000', csv: 'door_predictions.csv' },
-  { key: 'acv', label: 'ACV', tag: 'rank', score: '1.000', csv: 'acv_predictions.csv' },
-  { key: 'rail', label: 'Rail Corrugation', tag: 'macro-F1', score: '0.888', csv: 'rail_predictions.csv' },
-  { key: 'shm', label: 'SHM', tag: '1−MAPE', score: '0.974', csv: 'shm_predictions.csv' },
+  { key: 'door', label: 'Door' },
+  { key: 'acv', label: 'ACV' },
+  { key: 'rail', label: 'Rail Corrugation' },
+  { key: 'shm', label: 'SHM' },
 ];
 
 const PAGES = { start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage, saved: SavedPage };
@@ -40,7 +37,6 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
   const [historyOpenFor, setHistoryOpenFor] = useState(null);
   const [results, setResults] = useState({ door: null, acv: null, rail: null, shm: null });
-  const current = NAV.find((n) => n.key === view);
   const { saved, save, remove, isSaved } = useSavedResults();
 
   // One history log per subsystem, all owned here — the nav arrow that opens a log and the
@@ -111,7 +107,6 @@ export default function App() {
               >
                 <span className="gx-nav-flag" />
                 <span className="gx-nav-label">{n.label}</span>
-                <Term term={n.tag} className="gx-nav-tag">{n.tag}</Term>
               </button>
               <button
                 className={`gx-hist-arrow${historyOpenFor === n.key ? ' active' : ''}`}
@@ -124,19 +119,6 @@ export default function App() {
               </button>
             </div>
           ))}
-
-          {current && (
-            <div className="gx-side-meta">
-              <div className="gx-side-meta-row">
-                <span className="k">held-out score</span>
-                <span className="v" style={{ color: 'var(--gx-accent)' }}>{current.score}</span>
-              </div>
-              <div className="gx-side-meta-row">
-                <span className="k">submission file</span>
-                <span className="v">{current.csv}</span>
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         <div className="gx-sidebar-rail">

@@ -1,5 +1,6 @@
 import Banner from '../Banner';
 import DataTable from '../DataTable';
+import Glossed from '../Glossed';
 import HistogramChart from '../HistogramChart';
 import Metrics from '../Metrics';
 import Panel from '../Panel';
@@ -43,18 +44,17 @@ export default function ShmResult({ result, isSaved, onSave, onRemove }) {
 
       <Metrics
         items={[
-          { label: 'Cumulative damage', value: result.damage.toFixed(4), note: 'Palmgren–Miner, dimensionless', color: 'var(--gx-accent)' },
+          { label: 'Cumulative damage', value: result.damage.toFixed(4), note: '0 = fresh, 1 = life used up', color: 'var(--gx-accent)' },
           { label: 'Rainflow cycles', value: result.n_cycles.toLocaleString(undefined, { maximumFractionDigits: 0 }), note: `${result.n_reversals.toLocaleString()} reversals` },
           { label: 'Peak stress range', value: result.max_range.toFixed(1), note: 'largest single cycle' },
-          { label: 'Regressor correction', value: result.use_correction ? `×${result.correction_factor.toFixed(3)}` : 'off', note: `analytic ${result.analytic.toFixed(4)}` },
+          { label: 'Regressor correction', value: result.use_correction ? `×${result.correction_factor.toFixed(3)}` : 'off', note: `before correction: ${result.analytic.toFixed(4)}` },
         ]}
       />
 
       <Panel heading="Dynamic stress time series" sub={`${result.file_id} · ${result.n_samples.toLocaleString()} samples`}>
         <StressChart trace={result.trace} peaks={result.peaks} mean={result.mean} />
         <div style={{ fontSize: 12.5, color: 'var(--gx-faint)', marginTop: 8 }}>
-          Amber rings mark the eight largest excursions from the mean — with an S-N exponent
-          of 5, a handful of such cycles carries most of the damage.
+          <Glossed text="Amber rings mark the eight biggest stress swings — because of this material's S-N exponent, a handful of cycles like these carries most of the fatigue damage." />
         </div>
       </Panel>
 
