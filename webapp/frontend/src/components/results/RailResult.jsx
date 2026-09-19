@@ -1,4 +1,5 @@
 import Banner from '../Banner';
+import Caveat from '../Caveat';
 import Metrics from '../Metrics';
 import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
@@ -60,6 +61,12 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
         reliabilityNote={[result.reliability?.class_line, RELIABILITY_NOTE.rail]
           .filter(Boolean).join(' ')}
       />
+
+      {result.speed_context?.caveat && (
+        <Caveat title={result.speed_context.caveat.title}>
+          {result.speed_context.caveat.body}
+        </Caveat>
+      )}
 
       <Metrics
         items={[

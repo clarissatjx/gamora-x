@@ -96,6 +96,16 @@ def rail_speed_context(kmh: float) -> dict:
                     f"a Normal result here means no evidence of a fault, not evidence of none. "
                     f"Corrugation also excites less vibration at low speed, so a slow pass may "
                     f"genuinely carry less to detect."),
+            # Raised to a visible callout rather than a hover: it changes what the engineer
+            # should do next, and a tooltip is too easy to walk past.
+            "caveat": {
+                "title": "Don't take this reading at face value",
+                "body": (f"At {kmh:.0f} km/h this pass is slower than any corrugation fault in "
+                         f"the labelled data — the slowest was 34.9 km/h. Corrugation excites "
+                         f"less vibration the slower you go, so a real fault can look Normal "
+                         f"here. Read this as no evidence of a fault rather than evidence of "
+                         f"none, and re-check the section at line speed before clearing it."),
+            },
         }
     if kmh < RAIL_FAULT_DENSE_KMH:
         return {

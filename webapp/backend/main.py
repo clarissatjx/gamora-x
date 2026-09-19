@@ -147,7 +147,10 @@ def build_rail_result(data: bytes, file_id: str) -> dict:
         "stationary": stationary,
         "probabilities": res["probabilities"],
         "speed_kmh": res["speed_mps"] * 3.6,
-        "speed_context": rel.rail_speed_context(res["speed_mps"] * 3.6),
+        # Stationary recordings already lead with "Inconclusive", so the low-speed caveat
+        # would just repeat the verdict back at them.
+        "speed_context": (rel.rail_speed_context(res["speed_mps"] * 3.6) if not stationary
+                          else {**rel.rail_speed_context(0.0), "caveat": None}),
         "asym": asym,
         "asym_context": asym_ctx,
         "asym_bands": list(rel.RAIL_ASYM_BANDS),

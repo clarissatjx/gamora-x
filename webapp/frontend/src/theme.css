@@ -357,3 +357,20 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
   .gx-gauge-name { display: block; line-height: 1.3; }
   .gx-gauge-n { display: none; }
 }
+
+/* Caveat - a read-this-first note between the verdict and the numbers. Amber rather than
+   red: the verdict is not wrong, it just cannot be taken at face value. */
+.gx-caveat {
+  display: flex; gap: 11px; align-items: flex-start;
+  background: color-mix(in srgb, var(--gx-amber) 9%, var(--gx-panel));
+  border: 1px solid color-mix(in srgb, var(--gx-amber) 38%, transparent);
+  border-left: 3px solid var(--gx-amber);
+  border-radius: 3px; padding: 12px 15px; margin-bottom: 14px;
+}
+.gx-caveat-mark {
+  flex: none; width: 18px; height: 18px; border-radius: 50%; margin-top: 1px;
+  background: var(--gx-amber); color: var(--gx-bg);
+  font-size: 12px; font-weight: 700; line-height: 18px; text-align: center;
+}
+.gx-caveat-title { font-size: 13px; font-weight: 700; color: var(--gx-text); margin-bottom: 3px; }
+.gx-caveat-body { font-size: 13px; line-height: 1.55; color: var(--gx-body); margin: 0; }

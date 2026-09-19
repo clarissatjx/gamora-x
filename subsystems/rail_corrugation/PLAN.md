@@ -803,7 +803,13 @@ At the other end, over 45 km/h is where the faults actually live (33 of 38) and 
 
 The severity tier is deliberately **not** changed for slow recordings: the physics offers a
 legitimate reason a slow pass would show nothing, so escalating every one would be alert
-fatigue. The caveat is surfaced in the UI alongside the speed instead.
+fatigue.
+
+Instead the UI raises a **visible callout** between the verdict and the numbers — not a
+tooltip. This changes what the engineer does next ("re-check the section at line speed before
+clearing it"), and a hover is too easy to walk past for something that qualifies the answer
+rather than merely annotating it. It is suppressed on stationary recordings, which already
+lead with "Inconclusive" and would only get the same message twice.
 
 ---
 
