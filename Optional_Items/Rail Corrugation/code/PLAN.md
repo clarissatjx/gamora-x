@@ -750,10 +750,66 @@ Measured on the 195 moving Normal training recordings, feature `asym_diff_vib_rm
 | Side I fault mean | +0.031 (**1.1 sd** from healthy) |
 | Side II fault mean | -0.109 (**3.1 sd** from healthy) |
 
+Full per-class distributions (same feature, same 233 moving recordings), used to draw the
+UI's asymmetry gauge:
+
+| class | n | mean | sd | +/-1 sd band |
+|---|---|---|---|---|
+| Normal | 196 | -0.005 | 0.034 | -0.038 … +0.029 |
+| Side I | 14 | +0.031 | 0.065 | **-0.034 … +0.096** |
+| Side II | 24 | -0.109 | 0.064 | **-0.173 … -0.045** |
+
+Note the overlap: **Side I's band sits almost entirely on top of the healthy band**, while
+Side II's barely touches it. Drawn honestly on one axis, that single picture shows a reader
+why a Side II call is trustworthy and a Side I call is a judgement — without needing any
+statistics vocabulary.
+
+**The sharpest way to put it: 94% of the healthy band is also Side I territory, while Side II
+overlaps healthy by 0%.** (Healthy -0.038…+0.029; Side I -0.034…+0.096 — overlapping across
+0.063 of healthy's 0.067 width; Side II -0.173…-0.045, no overlap at all.) One class is
+cleanly separable on this measure and the other is essentially not, which is the entire
+story behind F1 0.878 versus 0.570.
+
 **One sigma versus three** is the most compact statement of why Side II is detected well
 (F1 0.878) and Side I poorly (F1 0.570): a Side I fault shifts the asymmetry by about as much
 as healthy track varies on its own. These are the numbers `app/reliability.py` cites to give
 the raw asymmetry figure a reference an engineer can judge against.
+
+---
+
+## Phase 11 — Speed coverage: the model has never seen a slow fault
+
+Asked whether recording speed should qualify a verdict. Measured out-of-fold accuracy by
+speed band across the 233 moving recordings:
+
+| speed | n | faults present | faults missed | accuracy |
+|---|---|---|---|---|
+| under 25 km/h | 75 | **0** | 0 | 100% |
+| 25-45 km/h | 59 | 5 | 2 | 97% |
+| over 45 km/h | 99 | 33 | 8 | 87% |
+
+**The lowest-speed fault in the entire labelled set is at 34.9 km/h.** Every one of the 38
+faults was recorded above that. So the 100% accuracy under 25 km/h is an artifact -- there
+were no faults to miss -- not evidence that the model works well when the train is slow.
+
+**Consequence: a Normal verdict on a slow recording is untested, not reassuring.** The model
+has never been shown what corrugation looks like below 35 km/h, so it cannot be said to have
+ruled it out. This is plausibly physical as well as statistical -- corrugation excitation
+scales with speed, so a slow pass may genuinely carry less signal -- but either way the
+honest statement is "no evidence", not "healthy".
+
+At the other end, over 45 km/h is where the faults actually live (33 of 38) and where
+**roughly 1 in 4 is missed**. That band carries the real detection risk.
+
+The severity tier is deliberately **not** changed for slow recordings: the physics offers a
+legitimate reason a slow pass would show nothing, so escalating every one would be alert
+fatigue.
+
+Instead the UI raises a **visible callout** between the verdict and the numbers — not a
+tooltip. This changes what the engineer does next ("re-check the section at line speed before
+clearing it"), and a hover is too easy to walk past for something that qualifies the answer
+rather than merely annotating it. It is suppressed on stationary recordings, which already
+lead with "Inconclusive" and would only get the same message twice.
 
 ---
 

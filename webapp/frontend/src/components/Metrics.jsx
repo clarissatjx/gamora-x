@@ -12,7 +12,7 @@ export default function Metrics({ items }) {
               behind a single confidence figure. It hangs off the note rather than the value:
               the dotted hover underline is invisible under the large display figure. */}
           <div className="gx-metric-n">
-            {tip ? <HoverNote label={note} tip={tip} /> : note && <Glossed text={note} />}
+            {tip ? <HoverNote label={note} tip={tip} wide /> : note && <Glossed text={note} />}
           </div>
         </div>
       ))}
