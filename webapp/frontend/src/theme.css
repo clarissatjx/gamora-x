@@ -297,6 +297,9 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
   font-family: 'Public Sans', sans-serif; font-weight: 400; white-space: normal;
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
 }
+/* Portaled to <body> (see Term.jsx) with an exact top/left computed from the anchor's
+   bounding rect, so it isn't clipped by any ancestor's overflow: auto/scroll. */
+.gx-term-tip-fixed { position: fixed; top: 0; left: 0; transform: none; }
 
 /* Asymmetry gauge (Rail) - three labelled populations on one axis, this recording drawn
    through them. See components/AsymGauge.jsx for why it is not a per-channel chart. The
