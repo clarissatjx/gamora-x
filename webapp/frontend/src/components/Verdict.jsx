@@ -24,9 +24,13 @@ export default function Verdict({ headline, tier, tierLabel, confidenceLabel, re
         </div>
         <p className="gx-prose gx-verdict-reasoning"><Glossed text={reasoning} /></p>
         {(reliabilityNote || scoresNote) && (
-          <div style={{ fontSize: 12.5, color: 'var(--gx-faint)', marginTop: 8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            {reliabilityNote && <HoverNote label="How reliable is this?" tip={reliabilityNote} />}
-            {scoresNote && <HoverNote label="See all three scores" tip={scoresNote} />}
+          <div style={{ fontSize: 12.5, color: 'var(--gx-faint)', marginTop: 10, display: 'flex', gap: 22, rowGap: 6, flexWrap: 'wrap' }}>
+            {reliabilityNote && (
+              <HoverNote label="How reliable is this?" tip={reliabilityNote} align="start" wide />
+            )}
+            {scoresNote && (
+              <HoverNote label="See all three scores" tip={scoresNote} align="start" wide />
+            )}
           </div>
         )}
       </div>
