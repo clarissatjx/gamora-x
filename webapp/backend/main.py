@@ -461,6 +461,7 @@ def acv_sample():
 # ----------------------------------------------------------------------------------- SHM -----
 
 SHM_CURVE_POINTS = 600
+SHM_TRACE_BUCKETS = 2000  # stress chart: min + max per bucket -> ~4000 points, as before
 _shm_bundle = None
 
 
@@ -483,6 +484,19 @@ def shm_top_excursions(x: np.ndarray, k: int = 8, min_gap_frac: float = 0.02) ->
         if len(chosen) == k:
             break
     return np.array(chosen)
+
+
+def shm_trace_indices(x: np.ndarray, keep: np.ndarray, n_buckets: int = SHM_TRACE_BUCKETS) -> np.ndarray:
+    """Sample indices to draw: the min and max of each bucket, in time order, plus `keep` (the
+    circled peaks). Plain every-Nth thinning skips short spikes, which left the line well short
+    of the circles it was supposed to pass through; min/max keeps the true envelope."""
+    edges = np.linspace(0, len(x), min(n_buckets, len(x)) + 1).astype(int)
+    idx = [0, len(x) - 1, *(int(k) for k in keep)]
+    for a, b in zip(edges[:-1], edges[1:]):
+        if b > a:
+            seg = x[a:b]
+            idx += [a + int(seg.argmin()), a + int(seg.argmax())]
+    return np.unique(idx)
 
 
 def shm_rainflow_positions(x: np.ndarray):
@@ -575,9 +589,8 @@ def build_shm_result(data: bytes, file_id: str) -> dict:
         "1.0 means the fatigue life at this point is fully used up."
     )
 
-    step = max(1, len(x) // 4000)
     peaks_idx = shm_top_excursions(x)
-    trace = [{"i": int(i), "stress": float(v)} for i, v in zip(range(0, len(x), step), x[::step])]
+    trace = [{"i": int(i), "stress": float(x[i])} for i in shm_trace_indices(x, peaks_idx)]
     peaks = [{"i": int(i), "stress": float(x[i])} for i in peaks_idx]
 
     return {
