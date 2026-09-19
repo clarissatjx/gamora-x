@@ -1,5 +1,4 @@
 import Banner from '../Banner';
-import DataTable from '../DataTable';
 import Metrics from '../Metrics';
 import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
@@ -70,7 +69,11 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
           { label: 'Confidence', value: result.stationary ? 'rule' : `${(result.confidence_value * 100).toFixed(0)}%`,
             note: result.stationary ? 'no wheel rotation detected' : 'hover for all three scores',
             tip: result.stationary ? undefined : probabilityTip(result) },
-          { label: 'Recording speed', value: `${result.speed_kmh.toFixed(0)} km/h`, note: 'from the pulse channel' },
+          { label: 'Recording speed', value: `${result.speed_kmh.toFixed(0)} km/h`,
+            note: result.speed_context?.note ?? 'from the pulse channel',
+            tip: result.speed_context?.tip,
+            // An untested speed is the one case where the speed itself qualifies the verdict.
+            color: result.speed_context?.band === 'untested' ? COLORS.amber : undefined },
           { label: 'Side asymmetry', value: `${result.asym >= 0 ? '+' : ''}${result.asym.toFixed(3)}`,
             note: result.asym_context
               ? `${result.asym_context.sd_from_healthy.toFixed(1)}x the healthy spread (±${result.asym_context.healthy_sd.toFixed(3)})`
@@ -96,22 +99,6 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
         />
       </Panel>
 
-      <DataTable
-        headers={['file_id', 'prediction', 'confidence', 'speed km/h']}
-        rows={[[
-          result.file_id,
-          <span className="pill" style={{ color: CLASS_COLOR[result.csv_prediction],
-            background: `color-mix(in srgb, ${CLASS_COLOR[result.csv_prediction]} 12%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${CLASS_COLOR[result.csv_prediction]} 30%, transparent)` }}>
-            {result.csv_prediction}
-          </span>,
-          result.stationary ? 'rule' : result.confidence_value.toFixed(2),
-          result.speed_kmh.toFixed(0),
-        ]]}
-        title="rail_predictions.csv · 1 row"
-        schema="file_id, prediction"
-        footer="only file_id and prediction are submitted; confidence and speed are informational."
-      />
 
       <NotesPanel subsystem="rail" fileId={result.file_id} />
     </>

@@ -147,6 +147,7 @@ def build_rail_result(data: bytes, file_id: str) -> dict:
         "stationary": stationary,
         "probabilities": res["probabilities"],
         "speed_kmh": res["speed_mps"] * 3.6,
+        "speed_context": rel.rail_speed_context(res["speed_mps"] * 3.6),
         "asym": asym,
         "asym_context": asym_ctx,
         "asym_bands": list(rel.RAIL_ASYM_BANDS),

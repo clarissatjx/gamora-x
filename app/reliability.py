@@ -77,6 +77,42 @@ ACV_RELIABILITY_NOTE = (
 )
 
 
+# Speed coverage -- PLAN.md Phase 11. Every one of the 38 labelled faults was recorded above
+# 34.9 km/h, so a Normal verdict on a slower pass is untested rather than reassuring; and
+# above 45 km/h, where 33 of the 38 faults sit, roughly 1 in 4 is missed.
+RAIL_SLOWEST_LABELLED_FAULT_KMH = 35
+RAIL_FAULT_DENSE_KMH = 45
+
+
+def rail_speed_context(kmh: float) -> dict:
+    """Qualify a verdict by how well the labelled data covers this recording speed."""
+    if kmh < RAIL_SLOWEST_LABELLED_FAULT_KMH:
+        return {
+            "band": "untested",
+            "note": "slower than any fault we have seen",
+            "tip": (f"Every corrugation fault in the labelled data was recorded above "
+                    f"{RAIL_SLOWEST_LABELLED_FAULT_KMH} km/h — the slowest was 34.9 km/h. This "
+                    f"model has never been shown what corrugation looks like at this speed, so "
+                    f"a Normal result here means no evidence of a fault, not evidence of none. "
+                    f"Corrugation also excites less vibration at low speed, so a slow pass may "
+                    f"genuinely carry less to detect."),
+        }
+    if kmh < RAIL_FAULT_DENSE_KMH:
+        return {
+            "band": "sparse",
+            "note": "few labelled faults at this speed",
+            "tip": ("Only 5 of the 38 labelled faults were recorded between 35 and 45 km/h, so "
+                    "the model has comparatively little experience in this range."),
+        }
+    return {
+        "band": "covered",
+        "note": "where most faults have been seen",
+        "tip": ("33 of the 38 labelled faults were recorded above 45 km/h, so the model has the "
+                "most experience here — but it is also where detection is hardest: about 1 in 4 "
+                "faults in this range was missed."),
+    }
+
+
 def rail_asym_context(asym: float, prediction: str | None = None) -> dict:
     """Describe a side-asymmetry value against healthy variation, so a bare number like
     '+0.042' becomes something an engineer can judge at a glance.

@@ -777,6 +777,36 @@ the raw asymmetry figure a reference an engineer can judge against.
 
 ---
 
+## Phase 11 — Speed coverage: the model has never seen a slow fault
+
+Asked whether recording speed should qualify a verdict. Measured out-of-fold accuracy by
+speed band across the 233 moving recordings:
+
+| speed | n | faults present | faults missed | accuracy |
+|---|---|---|---|---|
+| under 25 km/h | 75 | **0** | 0 | 100% |
+| 25-45 km/h | 59 | 5 | 2 | 97% |
+| over 45 km/h | 99 | 33 | 8 | 87% |
+
+**The lowest-speed fault in the entire labelled set is at 34.9 km/h.** Every one of the 38
+faults was recorded above that. So the 100% accuracy under 25 km/h is an artifact -- there
+were no faults to miss -- not evidence that the model works well when the train is slow.
+
+**Consequence: a Normal verdict on a slow recording is untested, not reassuring.** The model
+has never been shown what corrugation looks like below 35 km/h, so it cannot be said to have
+ruled it out. This is plausibly physical as well as statistical -- corrugation excitation
+scales with speed, so a slow pass may genuinely carry less signal -- but either way the
+honest statement is "no evidence", not "healthy".
+
+At the other end, over 45 km/h is where the faults actually live (33 of 38) and where
+**roughly 1 in 4 is missed**. That band carries the real detection risk.
+
+The severity tier is deliberately **not** changed for slow recordings: the physics offers a
+legitimate reason a slow pass would show nothing, so escalating every one would be alert
+fatigue. The caveat is surfaced in the UI alongside the speed instead.
+
+---
+
 ## Judgment calls log (carried into the write-up)
 
 - [x] **Speed derivation: 1 tooth = 1 rising edge** (`revolutions = rising_edges / 90`).
