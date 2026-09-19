@@ -2,12 +2,10 @@ import { useState } from 'react';
 import Banner from '../components/Banner';
 import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
-import HistoryDrawer from '../components/HistoryDrawer';
 import SaveButton from '../components/SaveButton';
 import Spinner from '../components/Spinner';
 import UploadModeToggle from '../components/UploadModeToggle';
 import AcvResult, { downloadAcvCsv } from '../components/results/AcvResult';
-import useRunHistory from '../hooks/useRunHistory';
 import { buildSavedEntry } from '../utils/savedEntry';
 
 const BATCH_HEADERS = ['file_id', 'ranked_cars'];
@@ -22,13 +20,10 @@ async function callApi(path, opts) {
   return res.json();
 }
 
-export default function AcvPage({ isSaved, onSave, onRemove }) {
-  const [result, setResult] = useState(null);
+export default function AcvPage({ isSaved, onSave, onRemove, result, setResult, onRecord }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('single');
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const { history, record, clear } = useRunHistory('acv');
 
   const run = async (fn) => {
     setLoading(true);
@@ -36,7 +31,7 @@ export default function AcvPage({ isSaved, onSave, onRemove }) {
     try {
       const data = await fn();
       setResult(data);
-      record(data);
+      onRecord(data);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -53,17 +48,10 @@ export default function AcvPage({ isSaved, onSave, onRemove }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div>
-          <h1 className="gx-h1">ACV — refrigerant leak localisation</h1>
-          <p className="gx-sub">
-            Ranks every car from most to least likely to carry the refrigerant leak.
-          </p>
-        </div>
-        <button className="gx-btn" onClick={() => setHistoryOpen(true)}>
-          History{history.length > 0 && <span className="gx-nav-tag">{history.length}</span>}
-        </button>
-      </div>
+      <h1 className="gx-h1">ACV — refrigerant leak localisation</h1>
+      <p className="gx-sub">
+        Ranks every car from most to least likely to carry the refrigerant leak.
+      </p>
 
       {!result && (
         <>
@@ -99,7 +87,7 @@ export default function AcvPage({ isSaved, onSave, onRemove }) {
               isSaved={isSaved}
               onSave={onSave}
               onRemove={onRemove}
-              onResult={record}
+              onResult={onRecord}
             />
           )}
         </>
@@ -118,16 +106,6 @@ export default function AcvPage({ isSaved, onSave, onRemove }) {
           </div>
         </>
       )}
-
-      <HistoryDrawer
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        label="ACV"
-        history={history}
-        onClear={clear}
-        onView={(entry) => { setResult(entry.result); setHistoryOpen(false); }}
-        onDownload={(entry) => downloadAcvCsv(entry.result)}
-      />
     </div>
   );
 }

@@ -2,12 +2,10 @@ import { useState } from 'react';
 import Banner from '../components/Banner';
 import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
-import HistoryDrawer from '../components/HistoryDrawer';
 import SaveButton from '../components/SaveButton';
 import Spinner from '../components/Spinner';
 import UploadModeToggle from '../components/UploadModeToggle';
 import ShmResult, { downloadShmCsv } from '../components/results/ShmResult';
-import useRunHistory from '../hooks/useRunHistory';
 import { buildSavedEntry } from '../utils/savedEntry';
 
 const BATCH_HEADERS = ['file_id', 'prediction'];
@@ -22,13 +20,10 @@ async function callApi(path, opts) {
   return res.json();
 }
 
-export default function ShmPage({ isSaved, onSave, onRemove }) {
-  const [result, setResult] = useState(null);
+export default function ShmPage({ isSaved, onSave, onRemove, result, setResult, onRecord }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('single');
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const { history, record, clear } = useRunHistory('shm');
 
   const run = async (fn) => {
     setLoading(true);
@@ -36,7 +31,7 @@ export default function ShmPage({ isSaved, onSave, onRemove }) {
     try {
       const data = await fn();
       setResult(data);
-      record(data);
+      onRecord(data);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -53,18 +48,11 @@ export default function ShmPage({ isSaved, onSave, onRemove }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div>
-          <h1 className="gx-h1">SHM — cumulative fatigue damage</h1>
-          <p className="gx-sub">
-            Reduces a dynamic stress series to one cumulative damage value via rainflow counting
-            and a calibrated Miner&rsquo;s-rule sum.
-          </p>
-        </div>
-        <button className="gx-btn" onClick={() => setHistoryOpen(true)}>
-          History{history.length > 0 && <span className="gx-nav-tag">{history.length}</span>}
-        </button>
-      </div>
+      <h1 className="gx-h1">SHM — cumulative fatigue damage</h1>
+      <p className="gx-sub">
+        Reduces a dynamic stress series to one cumulative damage value via rainflow counting
+        and a calibrated Miner&rsquo;s-rule sum.
+      </p>
 
       {!result && (
         <>
@@ -100,7 +88,7 @@ export default function ShmPage({ isSaved, onSave, onRemove }) {
               isSaved={isSaved}
               onSave={onSave}
               onRemove={onRemove}
-              onResult={record}
+              onResult={onRecord}
             />
           )}
         </>
@@ -119,16 +107,6 @@ export default function ShmPage({ isSaved, onSave, onRemove }) {
           </div>
         </>
       )}
-
-      <HistoryDrawer
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        label="SHM"
-        history={history}
-        onClear={clear}
-        onView={(entry) => { setResult(entry.result); setHistoryOpen(false); }}
-        onDownload={(entry) => downloadShmCsv(entry.result)}
-      />
     </div>
   );
 }

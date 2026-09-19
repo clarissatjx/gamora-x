@@ -5,8 +5,14 @@ import RailPage from './pages/RailPage';
 import SavedPage from './pages/SavedPage';
 import ShmPage from './pages/ShmPage';
 import StartPage from './pages/StartPage';
+import HistoryPanel from './components/HistoryPanel';
 import Term from './components/Term';
+import useRunHistory from './hooks/useRunHistory';
 import useSavedResults from './hooks/useSavedResults';
+import { downloadAcvCsv } from './components/results/AcvResult';
+import { downloadDoorCsv } from './components/results/DoorResult';
+import { downloadRailCsv } from './components/results/RailResult';
+import { downloadShmCsv } from './components/results/ShmResult';
 
 // Scores are the same held-out figures shown throughout the app (README, Streamlit sidebar) —
 // static here since they don't depend on any upload.
@@ -18,6 +24,8 @@ const NAV = [
 ];
 
 const PAGES = { start: StartPage, door: DoorPage, acv: AcvPage, rail: RailPage, shm: ShmPage, saved: SavedPage };
+const DOWNLOAD_CSV = { door: downloadDoorCsv, acv: downloadAcvCsv, rail: downloadRailCsv, shm: downloadShmCsv };
+const HISTORY_PANEL_WIDTH = 340;
 
 function readSidebarOpen() {
   try {
@@ -30,8 +38,20 @@ function readSidebarOpen() {
 export default function App() {
   const [view, setView] = useState('start');
   const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
+  const [historyOpenFor, setHistoryOpenFor] = useState(null);
+  const [results, setResults] = useState({ door: null, acv: null, rail: null, shm: null });
   const current = NAV.find((n) => n.key === view);
   const { saved, save, remove, isSaved } = useSavedResults();
+
+  // One history log per subsystem, all owned here — the nav arrow that opens a log and the
+  // page that writes to it are siblings, so neither can hold this state on its own.
+  const doorHistory = useRunHistory('door');
+  const acvHistory = useRunHistory('acv');
+  const railHistory = useRunHistory('rail');
+  const shmHistory = useRunHistory('shm');
+  const HISTORY = { door: doorHistory, acv: acvHistory, rail: railHistory, shm: shmHistory };
+
+  const setResultFor = (key, value) => setResults((prev) => ({ ...prev, [key]: value }));
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
@@ -45,7 +65,7 @@ export default function App() {
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {sidebarOpen ? (
         <div style={{
-          width: 246, flexShrink: 0, borderRight: '1px solid var(--gx-border)',
+          width: 268, flexShrink: 0, borderRight: '1px solid var(--gx-border)',
           padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 4,
         }}>
           <div className="gx-brand" style={{ marginBottom: 22, justifyContent: 'space-between' }}>
@@ -83,15 +103,26 @@ export default function App() {
           </div>
 
           {NAV.map((n) => (
-            <button
-              key={n.key}
-              onClick={() => setView(n.key)}
-              className={`gx-nav-btn${view === n.key ? ' active' : ''}`}
-            >
-              <span className="gx-nav-flag" />
-              <span className="gx-nav-label">{n.label}</span>
-              <Term term={n.tag} className="gx-nav-tag">{n.tag}</Term>
-            </button>
+            <div key={n.key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <button
+                onClick={() => setView(n.key)}
+                className={`gx-nav-btn${view === n.key ? ' active' : ''}`}
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                <span className="gx-nav-flag" />
+                <span className="gx-nav-label">{n.label}</span>
+                <Term term={n.tag} className="gx-nav-tag">{n.tag}</Term>
+              </button>
+              <button
+                className={`gx-hist-arrow${historyOpenFor === n.key ? ' active' : ''}`}
+                onClick={() => setHistoryOpenFor((v) => (v === n.key ? null : n.key))}
+                title={`${n.label} run history`}
+                aria-label={`${n.label} run history`}
+                aria-pressed={historyOpenFor === n.key}
+              >
+                ›
+              </button>
+            </div>
           ))}
 
           {current && (
@@ -116,6 +147,33 @@ export default function App() {
         </div>
       )}
 
+      {/* Slides open right next to the main sidebar — a second, per-subsystem nav rather than
+          an overlay, so it doesn't cover the page underneath. */}
+      <div
+        style={{
+          width: historyOpenFor ? HISTORY_PANEL_WIDTH : 0, flexShrink: 0, overflow: 'hidden',
+          transition: 'width 200ms ease',
+          borderRight: historyOpenFor ? '1px solid var(--gx-border)' : 'none',
+          background: 'var(--gx-panel)',
+        }}
+      >
+        {historyOpenFor && (
+          <HistoryPanel
+            width={HISTORY_PANEL_WIDTH}
+            label={NAV.find((n) => n.key === historyOpenFor)?.label}
+            history={HISTORY[historyOpenFor].history}
+            onClose={() => setHistoryOpenFor(null)}
+            onClear={HISTORY[historyOpenFor].clear}
+            onView={(entry) => {
+              setResultFor(historyOpenFor, entry.result);
+              setView(historyOpenFor);
+              setHistoryOpenFor(null);
+            }}
+            onDownload={(entry) => DOWNLOAD_CSV[historyOpenFor](entry.result)}
+          />
+        )}
+      </div>
+
       <div style={{ flex: 1, padding: '24px 32px 56px', maxWidth: 1148 }}>
         <div className="gx-topbar">
           <div className="gx-status">
@@ -127,7 +185,12 @@ export default function App() {
             clears when the page's own logic clears it (new upload, sample run, or Reset). */}
         {Object.entries(PAGES).map(([key, Page]) => (
           <div key={key} style={{ display: view === key ? 'block' : 'none' }}>
-            <Page onOpen={setView} saved={saved} isSaved={isSaved} onSave={save} onRemove={remove} />
+            <Page
+              onOpen={setView}
+              saved={saved} isSaved={isSaved} onSave={save} onRemove={remove}
+              result={results[key]} setResult={(v) => setResultFor(key, v)}
+              history={HISTORY[key]?.history} onRecord={HISTORY[key]?.record}
+            />
           </div>
         ))}
       </div>
