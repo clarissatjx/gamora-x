@@ -44,12 +44,20 @@ export default function App() {
   const [pendingUpload, setPendingUpload] = useState(null); // { subsystem, file } | null
   const { saved, save, remove, isSaved } = useSavedResults();
 
+  // Switching to a subsystem opens its history panel alongside it; switching to a page that
+  // isn't a subsystem (Get started, Saved, Under the hood) closes whatever panel was open,
+  // since a leftover "Door runs" panel wouldn't have anything to do with those pages.
+  const handleSetView = (key) => {
+    setView(key);
+    setHistoryOpenFor(NAV.some((n) => n.key === key) ? key : null);
+  };
+
   // Lets the Get Started tiles hand a file straight to a subsystem page without owning any
   // upload logic themselves — switch tabs, stash the file, the target page picks it up and
   // clears it once its own runFile has it.
   const handleQuickUpload = (key, file) => {
     setPendingUpload({ subsystem: key, file });
-    setView(key);
+    handleSetView(key);
   };
 
   // One history log per subsystem, all owned here — the nav arrow that opens a log and the
@@ -92,7 +100,7 @@ export default function App() {
           </div>
 
           <button
-            onClick={() => setView('start')}
+            onClick={() => handleSetView('start')}
             className={`gx-nav-btn${view === 'start' ? ' active' : ''}`}
           >
             <span className="gx-nav-flag" />
@@ -100,7 +108,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setView('saved')}
+            onClick={() => handleSetView('saved')}
             className={`gx-nav-btn${view === 'saved' ? ' active' : ''}`}
           >
             <span className="gx-nav-flag" />
@@ -115,7 +123,7 @@ export default function App() {
           {NAV.map((n) => (
             <div key={n.key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <button
-                onClick={() => setView(n.key)}
+                onClick={() => handleSetView(n.key)}
                 className={`gx-nav-btn${view === n.key ? ' active' : ''}`}
                 style={{ flex: 1, minWidth: 0 }}
               >
@@ -136,7 +144,7 @@ export default function App() {
 
           <div style={{ marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--gx-border)' }}>
             <button
-              onClick={() => setView('hood')}
+              onClick={() => handleSetView('hood')}
               className={`gx-nav-btn${view === 'hood' ? ' active' : ''}`}
             >
               <span className="gx-nav-flag" />
@@ -193,7 +201,7 @@ export default function App() {
         {Object.entries(PAGES).map(([key, Page]) => (
           <div key={key} style={{ display: view === key ? 'block' : 'none' }}>
             <Page
-              onOpen={setView}
+              onOpen={handleSetView}
               onUpload={handleQuickUpload}
               saved={saved} isSaved={isSaved} onSave={save} onRemove={remove}
               result={results[key]} setResult={(v) => setResultFor(key, v)}
