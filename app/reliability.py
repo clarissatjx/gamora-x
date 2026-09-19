@@ -207,14 +207,17 @@ def rail_severity(prediction: str, confidence: float, stationary: bool) -> str:
     return ACT if confidence >= 0.75 else INSPECT
 
 
+# Lower damage bound of each tier, highest first; below the last one is OK. Illustrative
+# (0.3 / 0.5 / 0.8 of the 0-1 damage scale), not an organiser-supplied maintenance limit --
+# see SHM_RELIABILITY_NOTE, always shown alongside. The React damage chart draws these bands.
+SHM_TIER_FLOORS = ((0.8, ACT), (0.5, INSPECT), (0.3, MONITOR))
+
+
 def shm_severity(damage: float) -> str:
-    # Thresholds are illustrative (0.5 / 0.8 of the 0-1 damage scale), not an organiser-
-    # supplied maintenance limit -- see SHM_RELIABILITY_NOTE, always shown alongside.
-    if damage >= 0.8:
-        return ACT
-    if damage >= 0.5:
-        return INSPECT
-    return OK if damage < 0.3 else MONITOR
+    for floor, tier in SHM_TIER_FLOORS:
+        if damage >= floor:
+            return tier
+    return OK
 
 
 def acv_severity(gap_c: float, margin: float) -> str:
