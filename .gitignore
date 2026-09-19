@@ -11,3 +11,5 @@ venv/
 *.local.joblib
 .claude/settings.local.json
 dist/
+node_modules/
+webapp/backend/notes.db

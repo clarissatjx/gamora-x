@@ -1,0 +1,5 @@
+# Installed on top of the root requirements.txt (the ML/subsystem deps this backend imports
+# directly). Upper bounds for the same reason as the root file: pin what's actually tested.
+fastapi>=0.104,<1
+uvicorn[standard]>=0.24,<1
+python-multipart>=0.0.6,<1
