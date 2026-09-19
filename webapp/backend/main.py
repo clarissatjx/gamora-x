@@ -9,7 +9,9 @@ Run from the repo root: `uvicorn webapp.backend.main:app --reload --port 8000`
 """
 import gzip
 import io
+import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +24,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 import pandas as pd
 
@@ -39,10 +42,38 @@ from subsystems.shm.predict import analyse as analyse_shm, load_model as load_sh
 
 SAMPLES_DIR = ROOT / "app" / "samples"
 
+# Notes are the one thing in this app meant to be seen across browsers — one engineer leaves a
+# note on a run, another looks at the same file later and sees it. SQLite on local disk is fine
+# for a single always-on instance; it will NOT survive a Cloud Run cold restart or be shared
+# across replicas if this service is ever scaled beyond one instance — swap for a real DB then.
+NOTES_DB = ROOT / "webapp" / "backend" / "notes.db"
+
 app = FastAPI(title="gamora-x API")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
 )
+
+
+def _notes_conn():
+    conn = sqlite3.connect(NOTES_DB)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS notes ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "subsystem TEXT NOT NULL, "
+        "file_id TEXT NOT NULL, "
+        "author TEXT NOT NULL, "
+        "text TEXT NOT NULL, "
+        "created_at TEXT NOT NULL)"
+    )
+    return conn
+
+
+class NoteIn(BaseModel):
+    subsystem: str
+    file_id: str
+    author: str = Field(min_length=1, max_length=60)
+    text: str = Field(min_length=1, max_length=2000)
+
 
 _artifact = None
 
@@ -513,6 +544,51 @@ def shm_sample():
     path = SAMPLES_DIR / "test02.csv.gz"
     data = gzip.decompress(path.read_bytes())
     return build_shm_result(data, "test02.csv")
+
+
+@app.get("/api/notes")
+def list_notes(subsystem: str, file_id: str):
+    conn = _notes_conn()
+    try:
+        rows = conn.execute(
+            "SELECT id, subsystem, file_id, author, text, created_at FROM notes "
+            "WHERE subsystem = ? AND file_id = ? ORDER BY created_at ASC",
+            (subsystem, file_id),
+        ).fetchall()
+    finally:
+        conn.close()
+    cols = ("id", "subsystem", "file_id", "author", "text", "created_at")
+    return [dict(zip(cols, row)) for row in rows]
+
+
+@app.post("/api/notes")
+def add_note(note: NoteIn):
+    author, text = note.author.strip(), note.text.strip()
+    if not author or not text:
+        raise HTTPException(400, "Name and note text can't be empty")
+    created_at = datetime.now(timezone.utc).isoformat()
+    conn = _notes_conn()
+    try:
+        cur = conn.execute(
+            "INSERT INTO notes (subsystem, file_id, author, text, created_at) VALUES (?, ?, ?, ?, ?)",
+            (note.subsystem, note.file_id, author, text, created_at),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"id": cur.lastrowid, "subsystem": note.subsystem, "file_id": note.file_id,
+            "author": author, "text": text, "created_at": created_at}
+
+
+@app.delete("/api/notes/{note_id}")
+def delete_note(note_id: int):
+    conn = _notes_conn()
+    try:
+        conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True}
 
 
 @app.get("/api/health")

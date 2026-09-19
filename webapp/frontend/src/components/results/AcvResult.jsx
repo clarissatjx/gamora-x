@@ -2,6 +2,7 @@ import Banner from '../Banner';
 import DataTable from '../DataTable';
 import GapChart from '../GapChart';
 import Metrics from '../Metrics';
+import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
 import Pill from '../Pill';
 import RankingBars from '../RankingBars';
@@ -78,6 +79,8 @@ export default function AcvResult({ result, isSaved, onSave, onRemove }) {
         schema="file_id, ranked_cars"
         footer="ranked_cars uses each car's ID exactly as it appears in the workbook headers."
       />
+
+      <NotesPanel subsystem="acv" fileId={result.file_id} />
     </>
   );
 }

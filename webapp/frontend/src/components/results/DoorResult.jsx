@@ -1,6 +1,7 @@
 import Banner from '../Banner';
 import DataTable from '../DataTable';
 import Metrics from '../Metrics';
+import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
 import SaveButton from '../SaveButton';
 import Verdict from '../Verdict';
@@ -79,6 +80,8 @@ export default function DoorResult({ result, isSaved, onSave, onRemove }) {
         schema="start_time, end_time, prediction"
         footer="confidence is informational — only start_time, end_time and prediction are scored."
       />
+
+      <NotesPanel subsystem="door" fileId={result.file_id} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import Banner from '../Banner';
 import DataTable from '../DataTable';
 import Metrics from '../Metrics';
+import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
 import SaveButton from '../SaveButton';
 import Verdict from '../Verdict';
@@ -76,6 +77,8 @@ export default function RailResult({ result, isSaved, onSave, onRemove }) {
         schema="file_id, prediction"
         footer="only file_id and prediction are submitted; confidence and speed are informational."
       />
+
+      <NotesPanel subsystem="rail" fileId={result.file_id} />
     </>
   );
 }

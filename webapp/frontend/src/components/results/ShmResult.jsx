@@ -3,6 +3,7 @@ import DataTable from '../DataTable';
 import Glossed from '../Glossed';
 import HistogramChart from '../HistogramChart';
 import Metrics from '../Metrics';
+import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
 import SaveButton from '../SaveButton';
 import StressChart from '../StressChart';
@@ -68,6 +69,8 @@ export default function ShmResult({ result, isSaved, onSave, onRemove }) {
         schema="file_id, prediction"
         footer="prediction is the cumulative fatigue damage; 1.0 = fatigue life consumed."
       />
+
+      <NotesPanel subsystem="shm" fileId={result.file_id} />
     </>
   );
 }
