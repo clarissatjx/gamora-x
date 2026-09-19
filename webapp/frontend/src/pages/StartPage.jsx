@@ -36,7 +36,7 @@ const SUBS = [
 const STEPS = [
   { n: '1', h: 'Pick a subsystem', b: 'Door, ACV, Rail Corrugation, or SHM — whichever file you have.' },
   { n: '2', h: 'Upload a file', b: 'Upload straight from a tile below, or open the subsystem to drop a file or try a sample.' },
-  { n: '3', h: 'Read the verdict', b: 'Plain English, with how urgent it is and how sure the model is.' },
+  { n: '3', h: 'Read the verdict', b: 'Plain English, with how urgent it is — no action needed, monitor, or inspect before next service — and how sure the model is.' },
 ];
 
 function SubsystemTile({ s, onOpen, onUpload }) {
