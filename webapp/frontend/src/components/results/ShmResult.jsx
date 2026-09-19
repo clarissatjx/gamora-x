@@ -1,5 +1,4 @@
 import Banner from '../Banner';
-import DataTable from '../DataTable';
 import Glossed from '../Glossed';
 import HistogramChart from '../HistogramChart';
 import Metrics from '../Metrics';
@@ -65,14 +64,6 @@ export default function ShmResult({ result, isSaved, onSave, onRemove, onUploadN
       <Panel heading="Rainflow cycle histogram" sub="Share of total damage by stress-range bin.">
         <HistogramChart rows={result.histogram} />
       </Panel>
-
-      <DataTable
-        headers={['file_id', 'prediction']}
-        rows={[[result.file_id, result.damage.toFixed(6)]]}
-        title="shm_predictions.csv · 1 row"
-        schema="file_id, prediction"
-        footer="prediction is the cumulative fatigue damage; 1.0 = fatigue life consumed."
-      />
 
       <NotesPanel subsystem="shm" fileId={result.file_id} />
     </>
