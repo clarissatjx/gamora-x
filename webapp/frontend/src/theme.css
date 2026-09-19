@@ -228,6 +228,12 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
   display: flex; justify-content: space-between; gap: 12px; padding: 14px 0;
   border-bottom: 1px solid var(--gx-border-soft);
 }
+.gx-hist-name {
+  font-weight: 600; font-size: 13.5px; margin-top: 3px; overflow-wrap: anywhere;
+  cursor: text; border-radius: 3px; padding: 2px 4px; margin-left: -4px;
+}
+.gx-hist-name:hover { background: var(--gx-bg); }
+.gx-hist-rename-hint { margin-left: 6px; font-size: 11px; color: var(--gx-faint); font-weight: 400; }
 
 /* ---------------- collapsible main sidebar ---------------- */
 .gx-sidebar-toggle {

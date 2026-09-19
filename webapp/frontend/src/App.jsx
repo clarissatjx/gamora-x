@@ -175,6 +175,7 @@ export default function App() {
               setHistoryOpenFor(null);
             }}
             onDownload={(entry) => DOWNLOAD_CSV[historyOpenFor](entry.result)}
+            onRename={(id, newLabel) => HISTORY[historyOpenFor].rename(id, newLabel)}
           />
         )}
       </div>

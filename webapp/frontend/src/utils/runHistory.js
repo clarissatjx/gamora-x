@@ -31,6 +31,7 @@ export function recordRun(subsystem, result) {
   const entry = {
     id: `${subsystem}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
     fileId: result.file_id,
+    label: result.file_id, // editable display name — starts as the filename, renameable after
     headline: result.headline,
     tier: result.tier,
     tierLabel: result.tier_label,
@@ -38,6 +39,12 @@ export function recordRun(subsystem, result) {
     result,
   };
   const next = [entry, ...loadHistory(subsystem)].slice(0, MAX_ENTRIES);
+  persist(subsystem, next);
+  return next;
+}
+
+export function renameRun(subsystem, id, label) {
+  const next = loadHistory(subsystem).map((e) => (e.id === id ? { ...e, label } : e));
   persist(subsystem, next);
   return next;
 }
