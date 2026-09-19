@@ -7,10 +7,14 @@
 // Deliberately not a per-channel chart: per-car asymmetry is dominated by car-to-car
 // variation (PLAN.md Phase 10), so a hotspot view would invite hunting for a bad wheel
 // that does not exist in this data.
+// Colour marks WHICH population a band is, never how worried to be. Healthy is deliberately
+// neutral rather than green: green is the "no action needed" tier colour everywhere else in
+// this app, and a green zone here would read as a clean bill of health — which this axis
+// cannot give, since most of the healthy band is also Side I territory.
 const BAND_COLOR = {
   'Side I corrugation': 'var(--gx-accent)',
   'Side II corrugation': 'var(--gx-amber)',
-  'healthy track': 'var(--gx-green)',
+  'healthy track': 'var(--gx-muted)',
 };
 
 // These are fixed reference populations, not per-recording values — measured once on the
@@ -25,7 +29,7 @@ const FALLBACK_BANDS = [
 ];
 const FALLBACK_AXIS = [-0.20, 0.17];
 
-export default function AsymGauge({ value, bands, axis, corroborates, prediction }) {
+export default function AsymGauge({ value, bands, axis, corroborates, prediction, verdictColor }) {
   if (!Number.isFinite(value)) return null;
   const useBands = bands?.length ? bands : FALLBACK_BANDS;
   const [lo, hi] = axis?.length === 2 ? axis : FALLBACK_AXIS;
@@ -33,9 +37,30 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
   const here = pct(value);
   const ticks = [-0.15, -0.10, -0.05, 0, 0.05, 0.10, 0.15];
 
+  // Where healthy and Side I overlap, this axis genuinely cannot tell them apart — and that
+  // covers nearly the whole healthy band. Drawing it stops "my needle is in healthy" being
+  // read as "I am fine".
+  const healthy = useBands.find((b) => b.label === 'healthy track');
+  const sideI = useBands.find((b) => b.label === 'Side I corrugation');
+  const blur = healthy && sideI
+    ? { lo: Math.max(healthy.lo, sideI.lo), hi: Math.min(healthy.hi, sideI.hi) }
+    : null;
+  const inBlur = blur && value >= blur.lo && value <= blur.hi;
+
   return (
     <div className="gx-gauge">
       <div className="gx-gauge-rows">
+        {blur && (
+          <div
+            className="gx-gauge-blur"
+            style={{
+              left: `calc(var(--gx-gauge-gutter) + (100% - var(--gx-gauge-gutter)) * ${pct(blur.lo) / 100})`,
+              width: `calc((100% - var(--gx-gauge-gutter)) * ${(pct(blur.hi) - pct(blur.lo)) / 100})`,
+            }}
+          >
+            <span className="gx-gauge-blur-tag">healthy and Side I overlap here</span>
+          </div>
+        )}
         {useBands.map((b) => {
           const color = BAND_COLOR[b.label] ?? 'var(--gx-idle-bar)';
           const inside = value >= b.lo && value <= b.hi;
@@ -62,8 +87,9 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
         })}
         {/* One line through all three rows — you read which bands it passes through. */}
         <div className="gx-gauge-needle" style={{ left: `calc(var(--gx-gauge-gutter) + (100% - var(--gx-gauge-gutter)) * ${here / 100})` }}>
-          <div className="gx-gauge-needle-line" />
-          <div className="gx-gauge-needle-tag mono">
+          <div className="gx-gauge-needle-line" style={{ background: verdictColor || 'var(--gx-text)' }} />
+          <div className="gx-gauge-needle-tag mono"
+               style={{ background: verdictColor || 'var(--gx-text)' }}>
             {value >= 0 ? '+' : ''}{value.toFixed(3)}
           </div>
         </div>
@@ -78,9 +104,10 @@ export default function AsymGauge({ value, bands, axis, corroborates, prediction
       </div>
 
       <p className="gx-gauge-caption">
-        Each band is where that group of labelled recordings sat, give or take its normal
-        spread. Side I overlaps healthy almost entirely — that is why light Side I corrugation
-        is the hardest call this model makes.
+        Each band covers roughly the middle two-thirds of that group of labelled recordings.
+        {inBlur
+          ? ' This recording sits in the stretch where healthy and Side I cannot be told apart on this measure — landing in the healthy band does not clear it, and the verdict above comes from the other signals the model weighs.'
+          : ' Side I overlaps healthy across most of its range, so this measure separates Side II well and Side I poorly.'}
         {corroborates === false && prediction && prediction !== 'Normal' && (
           <> This recording&rsquo;s imbalance does <strong>not</strong> single out {prediction};
           the model reached that verdict from the wider vibration pattern instead, so this gauge

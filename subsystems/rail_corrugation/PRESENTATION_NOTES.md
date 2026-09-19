@@ -493,6 +493,24 @@ evaluated on; we reported it as within noise and didn't adopt it, so nothing res
 
 ---
 
+## 5c-bis. The one number that explains the whole project
+
+**94% of the healthy band is also Side I territory. Side II overlaps healthy by 0%.**
+
+Measured on the side-asymmetry axis (±1 sd bands, 233 moving training recordings): healthy
+sits at -0.038…+0.029, Side I at -0.034…+0.096 — overlapping across 0.063 of healthy's 0.067
+width — while Side II sits at -0.173…-0.045 and never touches healthy at all.
+
+Use this whenever you need to justify the Side I score in one breath: *"on the measure that
+localises the faulty rail, Side II is cleanly separated from healthy and Side I is 94%
+overlapped with it. That's not a modelling failure, it's what the signal looks like."*
+
+It also drove a UI decision worth mentioning if asked about the app: the healthy band is
+drawn in neutral grey rather than green, because a green zone reads as a clean bill of
+health — and on this axis, landing in healthy does not clear a recording.
+
+---
+
 ## 5d. Explaining the basics out loud (rehearse these)
 
 **"What is rail corrugation and why care?"**

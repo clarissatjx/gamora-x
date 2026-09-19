@@ -74,6 +74,7 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
           axis={result.asym_axis}
           corroborates={result.asym_context?.corroborates}
           prediction={result.csv_prediction}
+          verdictColor={result.stationary ? COLORS.dim : CLASS_COLOR[result.csv_prediction]}
         />
       </Panel>
 

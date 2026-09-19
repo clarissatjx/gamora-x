@@ -314,6 +314,18 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
 }
 .gx-gauge-band { position: absolute; top: 3px; bottom: 3px; border-radius: 3px; border: 1px solid; }
 .gx-gauge-bandmean { position: absolute; top: 6px; bottom: 6px; width: 2px; opacity: 0.8; transform: translateX(-50%); }
+.gx-gauge-blur {
+  position: absolute; top: -2px; bottom: -2px; pointer-events: none; border-radius: 3px;
+  background: repeating-linear-gradient(135deg,
+    color-mix(in srgb, var(--gx-text) 7%, transparent) 0 5px,
+    transparent 5px 10px);
+  border-left: 1px dashed var(--gx-border-strong);
+  border-right: 1px dashed var(--gx-border-strong);
+}
+.gx-gauge-blur-tag {
+  position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; font-size: 10.5px; color: var(--gx-faint); letter-spacing: 0.02em;
+}
 .gx-gauge-needle { position: absolute; top: -2px; bottom: -2px; transform: translateX(-50%); pointer-events: none; }
 .gx-gauge-needle-line { width: 2px; height: 100%; margin: 0 auto; background: var(--gx-text); }
 .gx-gauge-needle-tag {
@@ -321,7 +333,7 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
   font-size: 11.5px; padding: 1px 6px; border-radius: 4px;
   background: var(--gx-text); color: var(--gx-bg);
 }
-.gx-gauge-axis { position: relative; height: 16px; margin-left: var(--gx-gauge-gutter); }
+.gx-gauge-axis { position: relative; height: 16px; margin-top: 16px; margin-left: var(--gx-gauge-gutter); }
 .gx-gauge-tick {
   position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--gx-faint);
 }

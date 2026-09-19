@@ -764,6 +764,12 @@ Side II's barely touches it. Drawn honestly on one axis, that single picture sho
 why a Side II call is trustworthy and a Side I call is a judgement — without needing any
 statistics vocabulary.
 
+**The sharpest way to put it: 94% of the healthy band is also Side I territory, while Side II
+overlaps healthy by 0%.** (Healthy -0.038…+0.029; Side I -0.034…+0.096 — overlapping across
+0.063 of healthy's 0.067 width; Side II -0.173…-0.045, no overlap at all.) One class is
+cleanly separable on this measure and the other is essentially not, which is the entire
+story behind F1 0.878 versus 0.570.
+
 **One sigma versus three** is the most compact statement of why Side II is detected well
 (F1 0.878) and Side I poorly (F1 0.570): a Side I fault shifts the asymmetry by about as much
 as healthy track varies on its own. These are the numbers `app/reliability.py` cites to give
