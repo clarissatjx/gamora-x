@@ -15,8 +15,8 @@ import { buildSavedEntry } from '../../utils/savedEntry';
 const CLASS_COLOR = { Normal: COLORS.green, 'Side I': COLORS.accent, 'Side II': COLORS.amber };
 
 // The full "here's what we found" body for a Rail Corrugation result — shared by the live
-// page and the Saved tab so a saved snapshot gets the exact same chart/table, not a
-// stripped summary.
+// page and the Saved tab so a saved snapshot gets the same evidence, not a stripped summary.
+
 // The model's own scores, and what that class's calls have historically been worth. Kept to
 // a hover: 88% of moving recordings come back at >=99% confidence, so a permanent chart of
 // this would read as a flat 100% nearly every time — and a confident Normal is exactly the
@@ -39,11 +39,8 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
   return (
     <>
       <Banner
-        text={`${result.file_id} accepted — 129 columns, 10 kHz, 1.0 s window. ${
-          result.stationary
-            ? result.explanation
-            : `Classified ${result.csv_prediction} with ${(result.confidence_value * 100).toFixed(0)}% confidence.`
-        }`}
+        text={`${result.file_id} accepted`}
+        detail="129 columns, 10 kHz, a 1.0 second window — the shape this model expects."
         color={result.stationary ? COLORS.dim : CLASS_COLOR[result.csv_prediction]}
         icon={result.stationary ? '?' : (result.csv_prediction !== 'Normal' ? '!' : '✓')}
         right={<>
@@ -60,6 +57,7 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
         reasoning={result.reasoning}
         reliabilityNote={[result.reliability?.class_line, RELIABILITY_NOTE.rail]
           .filter(Boolean).join(' ')}
+        scoresNote={result.stationary ? undefined : probabilityTip(result)}
       />
 
       {result.speed_context?.caveat && (
@@ -70,20 +68,19 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
 
       <Metrics
         items={[
-          { label: 'Prediction', value: result.prediction,
-            note: result.stationary ? 'by rule — train not moving' : 'from the vibration pattern',
-            color: result.stationary ? COLORS.dim : CLASS_COLOR[result.csv_prediction] },
-          { label: 'Confidence', value: result.stationary ? 'rule' : `${(result.confidence_value * 100).toFixed(0)}%`,
-            note: result.stationary ? 'no wheel rotation detected' : 'hover for all three scores',
-            tip: result.stationary ? undefined : probabilityTip(result) },
           { label: 'Recording speed', value: `${result.speed_kmh.toFixed(0)} km/h`,
-            note: result.speed_context?.note ?? 'from the pulse channel',
-            tip: result.speed_context?.tip,
+            // A stationary recording is already led by "Inconclusive"; telling it that it is
+            // slower than any fault we have seen is a strange way to say the train is parked.
+            note: result.stationary
+              ? 'train not moving'
+              : (result.speed_context?.note ?? 'from the pulse channel'),
+            tip: result.stationary ? undefined : result.speed_context?.tip,
             // An untested speed is the one case where the speed itself qualifies the verdict.
-            color: result.speed_context?.band === 'untested' ? COLORS.amber : undefined },
+            color: !result.stationary && result.speed_context?.band === 'untested'
+              ? COLORS.amber : undefined },
           { label: 'Side asymmetry', value: `${result.asym >= 0 ? '+' : ''}${result.asym.toFixed(3)}`,
             note: result.asym_context
-              ? `${result.asym_context.sd_from_healthy.toFixed(1)}x the healthy spread (±${result.asym_context.healthy_sd.toFixed(3)})`
+              ? `${result.asym_context.sd_from_healthy.toFixed(1)}x what healthy track varies by`
               : 'vibration strength, Side I vs Side II',
             // Only colour this as evidence when it actually agrees with the verdict —
             // asymmetry is an indicator, not the model's main input, and it can disagree.
@@ -105,7 +102,6 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
           verdictColor={result.stationary ? COLORS.dim : CLASS_COLOR[result.csv_prediction]}
         />
       </Panel>
-
 
       <NotesPanel subsystem="rail" fileId={result.file_id} />
     </>
