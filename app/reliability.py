@@ -6,6 +6,8 @@ maintenance standard to calibrate them against, so they are disclosed as a heuri
 aid, not a validated output, everywhere they are shown.
 """
 
+from __future__ import annotations
+
 # ---- Rail — subsystems/rail_corrugation/PLAN.md:274-291 (out-of-fold confusion matrix) ----
 RAIL_RELIABILITY = {
     "Side I": {"recall": 7 / 14, "precision": 7 / 9, "n_true": 14},
