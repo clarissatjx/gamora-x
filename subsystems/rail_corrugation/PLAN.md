@@ -712,6 +712,51 @@ files, where each file is ≈ ±0.04 macro F1 — and the write-up should presen
 −0.016, outside the high-speed Side II range) and `Test56` (Normal at 18.3 m/s, inside the
 high-speed Side I range). Neither is resolvable without labels.
 
+## Phase 10 — Spatial structure: measured, and it is not there
+
+Asked whether the 64 channels support a *per-car* or per-wheel view ("show the engineer which
+wheelset found the fault"). Measured before building anything: per-car asymmetry (that car's
+Side I mean RMS minus its Side II mean RMS) across 14 Side I, 10 Side II and 12 Normal moving
+files.
+
+| class | mean per-car asymmetry | spread across the 8 cars | cars pointing the right way |
+|---|---|---|---|
+| Side I | +0.028 | 0.140 | **3.6 / 8** |
+| Side II | -0.113 | 0.360 | **4.5 / 8** |
+
+**Car-to-car variation is 5-9x larger than the fault signal**, and individual cars barely agree
+with the verdict — 3.6/8 for Side I is at or below chance, and in **0 of 24 fault files did all
+eight cars agree**. Whatever drives car-to-car differences (sensor variation, loading, bogie
+condition) is far louder than corrugation.
+
+File-level detection still works because averaging 32 channels per side cancels that noise
+(~5.7x reduction) while the small consistent fault signal survives. **The signature is a
+whole-train average phenomenon, not a localisable one.**
+
+**Consequence for the UI:** a per-car or per-wheel "hotspot" display would show eight cars
+disagreeing with each other and with a correct verdict, and would invite an engineer to hunt
+for a bad wheel that does not exist in this data. Rejected on that basis. The honest display is
+the two side-distributions against a healthy reference band, which shows that the decision is a
+distributional call rather than a spot-the-defect exercise.
+
+### Healthy side-asymmetry reference band (used by the UI)
+
+Measured on the 195 moving Normal training recordings, feature `asym_diff_vib_rms_mean`:
+
+| statistic | value |
+|---|---|
+| healthy mean | **-0.005** |
+| healthy standard deviation | **0.034** |
+| Side I fault mean | +0.031 (**1.1 sd** from healthy) |
+| Side II fault mean | -0.109 (**3.1 sd** from healthy) |
+
+**One sigma versus three** is the most compact statement of why Side II is detected well
+(F1 0.878) and Side I poorly (F1 0.570): a Side I fault shifts the asymmetry by about as much
+as healthy track varies on its own. These are the numbers `app/reliability.py` cites to give
+the raw asymmetry figure a reference an engineer can judge against.
+
+---
+
 ## Judgment calls log (carried into the write-up)
 
 - [x] **Speed derivation: 1 tooth = 1 rising edge** (`revolutions = rising_edges / 90`).

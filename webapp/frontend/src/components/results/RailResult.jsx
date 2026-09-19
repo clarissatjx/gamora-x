@@ -6,7 +6,7 @@ import Panel from '../Panel';
 import SaveButton from '../SaveButton';
 import UploadNewButton from '../UploadNewButton';
 import Verdict from '../Verdict';
-import ChannelChart from '../ChannelChart';
+import SideDistribution from '../SideDistribution';
 import { COLORS } from '../../theme';
 import { RELIABILITY_NOTE } from '../../reliabilityNotes';
 import { downloadCsv } from '../../utils/csv';
@@ -41,7 +41,8 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
         tierLabel={result.tier_label}
         confidenceLabel={result.confidence_label}
         reasoning={result.reasoning}
-        reliabilityNote={RELIABILITY_NOTE.rail}
+        reliabilityNote={[result.reliability?.class_line, RELIABILITY_NOTE.rail]
+          .filter(Boolean).join(' ')}
       />
 
       <Metrics
@@ -53,16 +54,25 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
             note: result.stationary ? 'no wheel rotation detected' : 'how sure the model is' },
           { label: 'Recording speed', value: `${result.speed_kmh.toFixed(0)} km/h`, note: 'from the pulse channel' },
           { label: 'Side asymmetry', value: `${result.asym >= 0 ? '+' : ''}${result.asym.toFixed(3)}`,
-            note: 'vibration strength, Side I vs Side II',
-            color: result.csv_prediction !== 'Normal' ? CLASS_COLOR[result.csv_prediction] : undefined },
+            note: result.asym_context
+              ? `${result.asym_context.sd_from_healthy.toFixed(1)}x the healthy spread (±${result.asym_context.healthy_sd.toFixed(3)})`
+              : 'vibration strength, Side I vs Side II',
+            // Only colour this as evidence when it actually agrees with the verdict —
+            // asymmetry is an indicator, not the model's main input, and it can disagree.
+            color: result.asym_context?.corroborates && result.csv_prediction !== 'Normal'
+              ? CLASS_COLOR[result.csv_prediction] : undefined },
         ]}
       />
 
       <Panel
-        heading="Axle-box vibration energy, 64 channels"
-        sub="Per-channel RMS over the 1 s window. Highlighted channels sit on the predicted rail side."
+        heading="How the two rails compare"
+        sub="Each dot is one axle box's vibration energy over the 1 s window; the bar marks that side's average. The two spreads overlap heavily — the verdict comes from the shift between their centres, not from any single channel."
       >
-        <ChannelChart channels={result.channels} predictedSide={result.csv_prediction} />
+        <SideDistribution
+          channels={result.channels}
+          predictedSide={result.csv_prediction}
+          asymContext={result.asym_context}
+        />
       </Panel>
 
       <DataTable

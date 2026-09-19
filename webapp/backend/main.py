@@ -115,6 +115,7 @@ def build_rail_result(data: bytes, file_id: str) -> dict:
     stationary = bool(res["stationary_rule_applied"])
     confidence_val = 0.0 if stationary else float(res["probabilities"][pred])
     tier = rel.rail_severity(pred, confidence_val, stationary)
+    asym_ctx = rel.rail_asym_context(asym, pred if not stationary else None)
 
     if stationary:
         headline = "Inconclusive — train was stationary"
@@ -128,14 +129,15 @@ def build_rail_result(data: bytes, file_id: str) -> dict:
         headline = "No corrugation detected"
         reasoning = (
             f"Vibration and shock across all 64 axle-box channels matched the healthy pattern at "
-            f"{res['speed_mps'] * 3.6:.0f} km/h, with {res['probabilities'][pred]:.0%} model confidence."
+            f"{res['speed_mps'] * 3.6:.0f} km/h, with {res['probabilities'][pred]:.0%} model confidence. "
+            + rel.RAIL_NORMAL_CAVEAT
         )
     else:
         headline = f"{pred} corrugation detected"
         reasoning = (
-            f"The {pred} rail's axle boxes show a vibration signature distinct from the healthy "
-            f"pattern, {res['probabilities'][pred]:.0%} confidence — side asymmetry "
-            f"{asym:+.3f} vs a healthy median near zero."
+            f"The {pred} rail's axle boxes show a vibration signature the model separates from "
+            f"the healthy pattern, {res['probabilities'][pred]:.0%} confidence. Side asymmetry "
+            f"is {asym:+.3f} — {asym_ctx['detail']}"
         )
 
     return {
@@ -146,6 +148,7 @@ def build_rail_result(data: bytes, file_id: str) -> dict:
         "probabilities": res["probabilities"],
         "speed_kmh": res["speed_mps"] * 3.6,
         "asym": asym,
+        "asym_context": asym_ctx,
         "channels": ch,
         "explanation": res["explanation"],
         "tier": tier,
@@ -156,6 +159,10 @@ def build_rail_result(data: bytes, file_id: str) -> dict:
         "reasoning": reasoning,
         "reliability": {
             "note": rel.RAIL_RELIABILITY_NOTE,
+            # The sentence that actually matters for THIS verdict — the generic one cannot
+            # say that a Side I call and a Side II call are very different propositions.
+            "class_line": None if stationary else rel.rail_class_line(pred),
+            "normal_caveat": rel.RAIL_NORMAL_CAVEAT if (pred == "Normal" and not stationary) else None,
             "classes": [
                 {"label": c, "recall": rel.RAIL_RELIABILITY[c]["recall"], "precision": rel.RAIL_RELIABILITY[c]["precision"]}
                 for c in ("Side I", "Side II", "Normal")

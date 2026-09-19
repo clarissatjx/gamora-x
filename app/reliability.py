@@ -19,6 +19,22 @@ RAIL_RELIABILITY_NOTE = (
     "numbers below as the more durable read of what to expect on a new recording."
 )
 
+# Healthy side-asymmetry reference — subsystems/rail_corrugation/PLAN.md, Phase 10.
+# Measured on the 195 moving Normal training recordings. Gives the raw asymmetry number a
+# yardstick: a Side I fault shifts it ~1.1 sd, a Side II fault ~3.1 sd, which is the whole
+# reason Side II is detected well and Side I is not.
+RAIL_ASYM_HEALTHY_MEAN = -0.005
+RAIL_ASYM_HEALTHY_SD = 0.034
+
+# A "Normal" verdict is not equally strong evidence about both rails — recall is 83% for
+# Side II but only 50% for Side I. Saying "no corrugation" without that distinction
+# overstates what the model actually checked.
+RAIL_NORMAL_CAVEAT = (
+    "A Normal result rules out Side II far more strongly than Side I: on the labelled data "
+    "this model caught 83% of Side II cases but only 50% of Side I ones. Light Side I "
+    "corrugation is the fault most likely to be sitting behind a Normal verdict."
+)
+
 # ---- Door — subsystems/door/PLAN.md:184-189 (independent review) ----
 DOOR_RELIABILITY_NOTE = (
     "On the labelled training cycles, this model caught every cycle with a clearly abnormal "
@@ -48,6 +64,50 @@ ACV_RELIABILITY_NOTE = (
     "6. That is a small sample — six cases is not enough to rule out a rare miss — but it is "
     "the complete record, including the one v1 got wrong before this fix."
 )
+
+
+def rail_asym_context(asym: float, prediction: str | None = None) -> dict:
+    """Describe a side-asymmetry value against healthy variation, so a bare number like
+    '+0.042' becomes something an engineer can judge at a glance.
+
+    Side asymmetry is an *indicator*, not the model's main input — permutation importance
+    puts per-side peak vibration well above it (PLAN.md Phase 9). So it can disagree with a
+    correct verdict, and the caller is told when it does rather than being handed a sentence
+    that argues with itself.
+    """
+    sd = abs(asym - RAIL_ASYM_HEALTHY_MEAN) / RAIL_ASYM_HEALTHY_SD
+    if sd < 1:
+        verdict = "within the range healthy track produces on its own"
+    elif sd < 2:
+        verdict = "slightly outside healthy variation — where Side I faults typically sit"
+    else:
+        verdict = "well outside healthy variation"
+    louder = "Side I" if asym > RAIL_ASYM_HEALTHY_MEAN else "Side II"
+
+    corroborates = None
+    if prediction in ("Side I", "Side II"):
+        corroborates = bool(sd >= 1 and louder == prediction)
+    elif prediction == "Normal":
+        corroborates = bool(sd < 1)
+
+    if corroborates is False and prediction in ("Side I", "Side II"):
+        detail = (f"{sd:.1f}x the healthy spread (+/-{RAIL_ASYM_HEALTHY_SD:.3f}), which is "
+                  f"{verdict} — so this call rests on the wider vibration pattern rather than "
+                  f"a simple side imbalance, and is not something you could eyeball.")
+    elif corroborates is False:
+        detail = (f"{sd:.1f}x the healthy spread (+/-{RAIL_ASYM_HEALTHY_SD:.3f}) — {verdict}, "
+                  f"the {louder} side being the louder of the two.")
+    else:
+        detail = f"{sd:.1f}x the healthy spread (+/-{RAIL_ASYM_HEALTHY_SD:.3f}) — {verdict}."
+
+    return {
+        "sd_from_healthy": sd,
+        "healthy_sd": RAIL_ASYM_HEALTHY_SD,
+        "louder_side": louder,
+        "verdict": verdict,
+        "corroborates": corroborates,
+        "detail": detail,
+    }
 
 
 def rail_class_line(cls: str) -> str:
@@ -81,7 +141,10 @@ def rail_severity(prediction: str, confidence: float, stationary: bool) -> str:
     if stationary:
         return UNKNOWN
     if prediction == "Normal":
-        return OK
+        # Side I recall is 0.50 — half of all Side I faults are called Normal — so an
+        # unsure Normal is exactly where a missed fault hides. A confident Normal still
+        # earns OK (Normal precision is 95%); flagging every Normal would be alert fatigue.
+        return OK if confidence >= 0.75 else MONITOR
     return ACT if confidence >= 0.75 else INSPECT
 
 
