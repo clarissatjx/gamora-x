@@ -1,10 +1,8 @@
 import Banner from '../Banner';
-import DataTable from '../DataTable';
 import GapChart from '../GapChart';
 import Metrics from '../Metrics';
 import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
-import Pill from '../Pill';
 import RankingBars from '../RankingBars';
 import SaveButton from '../SaveButton';
 import UploadNewButton from '../UploadNewButton';
@@ -69,17 +67,6 @@ export default function AcvResult({ result, isSaved, onSave, onRemove, onUploadN
           )}
         </div>
       </div>
-
-      <DataTable
-        headers={['rank', 'car', 'score']}
-        rows={result.scores.map((s) => [
-          s.rank, s.rank === 1 ? <Pill text={`car ${s.car}`} color={COLORS.red} /> : s.car,
-          `${s.score >= 0 ? '+' : ''}${s.score.toFixed(2)}`,
-        ])}
-        title={`acv_predictions.csv · 1 row`}
-        schema="file_id, ranked_cars"
-        footer="ranked_cars uses each car's ID exactly as it appears in the workbook headers."
-      />
 
       <NotesPanel subsystem="acv" fileId={result.file_id} />
     </>
