@@ -32,7 +32,7 @@ import reliability as rel  # noqa: E402
 from inference.acv import DEFAULT_METHOD  # noqa: E402 - streamlit-free per app/CLAUDE.md
 from subsystems.acv.features import extract_features, load_case  # noqa: E402
 from subsystems.acv.rank import COOLING_MODES, MODE_PARAM, TEMP_PAIRS, heuristic_scores, physics_gap, score_cars  # noqa: E402
-from subsystems.door.loader import CURRENT_COL, POSITION_COL, load_stream  # noqa: E402
+from subsystems.door.loader import CURRENT_COL, POSITION_COL, TIME_COL, load_stream  # noqa: E402
 from subsystems.door.predict import load_model as load_door_model, run as run_door, to_output  # noqa: E402
 from subsystems.rail_corrugation import config  # noqa: E402
 from subsystems.rail_corrugation.features import _channel_column_indices, load_raw_file  # noqa: E402
@@ -312,7 +312,7 @@ def build_door_result(data: bytes, file_id: str) -> dict:
         "headline": headline, "reasoning": reasoning,
         "reliability_note": rel.DOOR_RELIABILITY_NOTE,
         "cycles": cycles,
-        "chart": {"trace": trace, "bands": bands},
+        "chart": {"trace": trace, "bands": bands, "t0": str(df[TIME_COL].iloc[0])},
         "evidence_by_cycle": evidence_by_cycle,
         "worst_cycle": (worst["i"] + 1) if worst else None,
         "official_score": "1.000",

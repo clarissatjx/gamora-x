@@ -62,7 +62,7 @@ export default function DoorResult({ result, isSaved, onSave, onRemove, onUpload
 
       <Panel heading="Motor current with detected door cycles"
              sub={<Glossed text="Shaded bands are detected cycles, cyan is motor current, the dashed grey line is door leaf position. Hover a band to see that cycle's status." />}>
-        <DoorChart trace={result.chart.trace} bands={result.chart.bands} />
+        <DoorChart trace={result.chart.trace} bands={result.chart.bands} t0={result.chart.t0} />
       </Panel>
 
       {abnormalCycles.length > 0 && (

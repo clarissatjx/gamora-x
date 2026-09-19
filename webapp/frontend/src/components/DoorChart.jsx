@@ -1,8 +1,35 @@
 import { useState } from 'react';
+import { formatClock, formatDate, formatDuration, parseDoorTs } from '../utils/doorTime';
 
 const STATUS_COLOR = { 'Abnormal resistance': 'var(--gx-red)', Normal: 'var(--gx-green)' };
 
-export default function DoorChart({ trace, bands }) {
+function CycleTimes({ band, t0 }) {
+  const start = parseDoorTs(band.start_time);
+  const end = parseDoorTs(band.end_time);
+  if (start == null || end == null) {
+    return <div className="mono" style={{ fontSize: 11.5, color: 'var(--gx-faint)' }}>{band.start_time} → {band.end_time}</div>;
+  }
+  const startDate = formatDate(start), endDate = formatDate(end);
+  return (
+    <>
+      <div className="mono" style={{ fontSize: 12 }}>
+        {formatClock(start)} → {formatClock(end)}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--gx-muted)', marginTop: 2 }}>
+        lasted {formatDuration(end - start)}
+        {t0 != null && start >= t0 && <> · starts {formatDuration(start - t0)} into the recording</>}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--gx-faint)', marginTop: 2 }}>
+        {startDate === endDate ? startDate : `${startDate} → ${endDate}`}
+      </div>
+    </>
+  );
+}
+
+// t0: the recording's first timestamp, so each cycle can say how far into the file it sits
+// (the x-axis is sample index, which hides the idle gaps between cycles). Older saved results
+// don't carry it, so fall back to the first cycle's start.
+export default function DoorChart({ trace, bands, t0 }) {
   const [hover, setHover] = useState(null);
   const w = 900, h = 220, pad = 4;
   const n = trace.length;
@@ -19,6 +46,7 @@ export default function DoorChart({ trace, bands }) {
   const posPath = trace.map((t, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${yP(t.position)}`).join(' ');
 
   const hovered = hover !== null ? bands[hover] : null;
+  const recordingStart = parseDoorTs(t0 ?? bands[0]?.start_time);
   const hoveredMidPct = hovered
     ? ((x(Math.min(hovered.x0, n - 1)) + x(Math.min(hovered.x1, n - 1))) / 2 / w) * 100
     : 0;
@@ -54,13 +82,11 @@ export default function DoorChart({ trace, bands }) {
           className="gx-chart-tip"
           style={{ left: `${Math.min(Math.max(hoveredMidPct, 12), 88)}%` }}
         >
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Cycle {hovered.n}</div>
-          <div className="mono" style={{ fontSize: 11.5, color: 'var(--gx-faint)' }}>
-            {hovered.start_time} → {hovered.end_time}
-          </div>
-          <div style={{ marginTop: 4, color: STATUS_COLOR[hovered.status] || 'var(--gx-green)' }}>
+          <div style={{ fontWeight: 600 }}>Cycle {hovered.n}</div>
+          <div style={{ marginBottom: 6, color: STATUS_COLOR[hovered.status] || 'var(--gx-green)' }}>
             {hovered.status} · {(hovered.confidence * 100).toFixed(0)}% confidence
           </div>
+          <CycleTimes band={hovered} t0={recordingStart} />
         </div>
       )}
     </div>
