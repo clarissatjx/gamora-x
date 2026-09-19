@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import Banner from '../components/Banner';
+import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
 import SaveButton from '../components/SaveButton';
 import Spinner from '../components/Spinner';
+import UploadModeToggle from '../components/UploadModeToggle';
 import ShmResult from '../components/results/ShmResult';
 import { downloadCsv } from '../utils/csv';
 import { buildSavedEntry } from '../utils/savedEntry';
+
+const BATCH_HEADERS = ['file_id', 'prediction'];
+const batchRows = (result) => [[result.file_id, result.damage.toFixed(6)]];
 
 async function callApi(path, opts) {
   const res = await fetch(path, opts);
@@ -20,6 +25,7 @@ export default function ShmPage({ isSaved, onSave, onRemove }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState('single');
 
   const run = async (fn) => {
     setLoading(true);
@@ -59,16 +65,36 @@ export default function ShmPage({ isSaved, onSave, onRemove }) {
             icon="⬆"
             text="Counts every load cycle with rainflow counting and sums the fatigue contribution — 1.0 means the fatigue life is used up."
           />
-          <Dropzone
-            label="Drop a dynamic stress segment (.csv, one headerless column)"
-            sub="One measurement point's stress time series."
-            accept=".csv"
-            onFile={runFile}
-            disabled={loading}
-          />
-          <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
-            {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — test02.csv'}
-          </button>
+          <UploadModeToggle mode={mode} onChange={setMode} />
+          {mode === 'single' ? (
+            <>
+              <Dropzone
+                label="Drop a dynamic stress segment (.csv, one headerless column)"
+                sub="One measurement point's stress time series."
+                accept=".csv"
+                onFile={runFile}
+                disabled={loading}
+              />
+              <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
+                {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — test02.csv'}
+              </button>
+            </>
+          ) : (
+            <BatchUploader
+              subsystem="shm"
+              accept=".csv"
+              label="Drop multiple stress segments (.csv, one headerless column each)"
+              sub="Each file's cumulative damage is estimated independently."
+              predictPath="/api/shm/predict"
+              ResultComponent={ShmResult}
+              csvFileName="shm_batch_predictions.csv"
+              csvHeaders={BATCH_HEADERS}
+              buildRows={batchRows}
+              isSaved={isSaved}
+              onSave={onSave}
+              onRemove={onRemove}
+            />
+          )}
         </>
       )}
 

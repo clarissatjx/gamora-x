@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import Banner from '../components/Banner';
+import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
 import SaveButton from '../components/SaveButton';
 import Spinner from '../components/Spinner';
 import Term from '../components/Term';
+import UploadModeToggle from '../components/UploadModeToggle';
 import RailResult, { downloadRailCsv } from '../components/results/RailResult';
 import { COLORS } from '../theme';
 import { buildSavedEntry } from '../utils/savedEntry';
+
+const BATCH_HEADERS = ['file_id', 'prediction'];
+const batchRows = (result) => [[result.file_id, result.csv_prediction]];
 
 async function callApi(path, opts) {
   const res = await fetch(path, opts);
@@ -21,6 +26,7 @@ export default function RailPage({ isSaved, onSave, onRemove }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState('single');
 
   const runFile = async (file) => {
     setLoading(true);
@@ -68,16 +74,36 @@ export default function RailPage({ isSaved, onSave, onRemove }) {
             icon="⬆"
             text="Positions 1/3/5/7 sit on the Side I rail, 2/4/6/8 on Side II — corrugation shows up as a vibration signature on one side only. A stationary train can't generate that signature, so this app reads it Inconclusive (the submitted label is still Normal)."
           />
-          <Dropzone
-            label="Drop an axle-box recording (.csv)"
-            sub="One second at 10 kHz: speed pulse plus 64 axle boxes × vibration and shock."
-            accept=".csv"
-            onFile={runFile}
-            disabled={loading}
-          />
-          <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
-            {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — Test33.csv'}
-          </button>
+          <UploadModeToggle mode={mode} onChange={setMode} />
+          {mode === 'single' ? (
+            <>
+              <Dropzone
+                label="Drop an axle-box recording (.csv)"
+                sub="One second at 10 kHz: speed pulse plus 64 axle boxes × vibration and shock."
+                accept=".csv"
+                onFile={runFile}
+                disabled={loading}
+              />
+              <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
+                {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — Test33.csv'}
+              </button>
+            </>
+          ) : (
+            <BatchUploader
+              subsystem="rail"
+              accept=".csv"
+              label="Drop multiple axle-box recordings (.csv)"
+              sub="Each 1 s recording is classified independently."
+              predictPath="/api/rail/predict"
+              ResultComponent={RailResult}
+              csvFileName="rail_batch_predictions.csv"
+              csvHeaders={BATCH_HEADERS}
+              buildRows={batchRows}
+              isSaved={isSaved}
+              onSave={onSave}
+              onRemove={onRemove}
+            />
+          )}
         </>
       )}
 

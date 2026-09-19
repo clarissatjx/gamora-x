@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import Banner from '../components/Banner';
+import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
 import SaveButton from '../components/SaveButton';
 import Spinner from '../components/Spinner';
+import UploadModeToggle from '../components/UploadModeToggle';
 import DoorResult from '../components/results/DoorResult';
 import { downloadCsv } from '../utils/csv';
 import { buildSavedEntry } from '../utils/savedEntry';
+
+const BATCH_HEADERS = ['file_id', 'start_time', 'end_time', 'prediction', 'confidence'];
+const batchRows = (result) => result.cycles.map((c) => [result.file_id, c.start_time, c.end_time, c.prediction, c.confidence]);
 
 async function callApi(path, opts) {
   const res = await fetch(path, opts);
@@ -20,6 +25,7 @@ export default function DoorPage({ isSaved, onSave, onRemove }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState('single');
 
   const run = async (fn) => {
     setLoading(true);
@@ -60,16 +66,36 @@ export default function DoorPage({ isSaved, onSave, onRemove }) {
             icon="⬆"
             text="Drop a recording — cycles are found, scored and charted automatically. No need to split the file up first."
           />
-          <Dropzone
-            label="Drop a door controller recording (.csv)"
-            sub="A continuous recording containing many door open/close cycles back to back."
-            accept=".csv"
-            onFile={runFile}
-            disabled={loading}
-          />
-          <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
-            {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — Test.csv'}
-          </button>
+          <UploadModeToggle mode={mode} onChange={setMode} />
+          {mode === 'single' ? (
+            <>
+              <Dropzone
+                label="Drop a door controller recording (.csv)"
+                sub="A continuous recording containing many door open/close cycles back to back."
+                accept=".csv"
+                onFile={runFile}
+                disabled={loading}
+              />
+              <button className="gx-btn gx-btn-accent" onClick={runSample} disabled={loading}>
+                {loading && <Spinner />} {loading ? 'Loading…' : 'Try the sample — Test.csv'}
+              </button>
+            </>
+          ) : (
+            <BatchUploader
+              subsystem="door"
+              accept=".csv"
+              label="Drop multiple door controller recordings (.csv)"
+              sub="Each file is segmented and classified independently."
+              predictPath="/api/door/predict"
+              ResultComponent={DoorResult}
+              csvFileName="door_batch_predictions.csv"
+              csvHeaders={BATCH_HEADERS}
+              buildRows={batchRows}
+              isSaved={isSaved}
+              onSave={onSave}
+              onRemove={onRemove}
+            />
+          )}
         </>
       )}
 
