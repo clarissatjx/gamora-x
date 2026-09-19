@@ -49,6 +49,12 @@ export function renameRun(subsystem, id, label) {
   return next;
 }
 
+export function deleteRun(subsystem, id) {
+  const next = loadHistory(subsystem).filter((e) => e.id !== id);
+  persist(subsystem, next);
+  return next;
+}
+
 export function clearHistory(subsystem) {
   persist(subsystem, []);
   return [];

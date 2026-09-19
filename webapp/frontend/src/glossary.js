@@ -2,6 +2,14 @@
 // reliability notes and evidence panels. Written for an engineer new to this dataset, not for
 // someone who already knows what back-EMF or rainflow counting means.
 export const GLOSSARY = {
+  cycle: "One full door movement — open then close — cut out of the continuous recording. A "
+    + "single uploaded file is one long stream covering many doors opening and closing back to "
+    + "back; the model's first job is finding where each cycle starts and ends before it can "
+    + "judge that cycle on its own.",
+  'abnormal resistance': "The motor is drawing more current (or less back-EMF) than a healthy "
+    + "cycle of the same kind of movement would — the electrical signature of something "
+    + "physically resisting the door, such as an obstruction, binding track or worn part. It "
+    + "does not diagnose which of those it is, only that resistance is higher than expected.",
   'back-EMF': "The voltage a spinning motor generates on its own, opposing the current driving "
     + "it. It falls when the motor is working harder and turning slower under load — a strained "
     + "motor shows lower back-EMF even as current rises.",
