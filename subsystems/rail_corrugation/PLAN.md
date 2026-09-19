@@ -750,6 +750,20 @@ Measured on the 195 moving Normal training recordings, feature `asym_diff_vib_rm
 | Side I fault mean | +0.031 (**1.1 sd** from healthy) |
 | Side II fault mean | -0.109 (**3.1 sd** from healthy) |
 
+Full per-class distributions (same feature, same 233 moving recordings), used to draw the
+UI's asymmetry gauge:
+
+| class | n | mean | sd | +/-1 sd band |
+|---|---|---|---|---|
+| Normal | 196 | -0.005 | 0.034 | -0.038 … +0.029 |
+| Side I | 14 | +0.031 | 0.065 | **-0.034 … +0.096** |
+| Side II | 24 | -0.109 | 0.064 | **-0.173 … -0.045** |
+
+Note the overlap: **Side I's band sits almost entirely on top of the healthy band**, while
+Side II's barely touches it. Drawn honestly on one axis, that single picture shows a reader
+why a Side II call is trustworthy and a Side I call is a judgement — without needing any
+statistics vocabulary.
+
 **One sigma versus three** is the most compact statement of why Side II is detected well
 (F1 0.878) and Side I poorly (F1 0.570): a Side I fault shifts the asymmetry by about as much
 as healthy track varies on its own. These are the numbers `app/reliability.py` cites to give

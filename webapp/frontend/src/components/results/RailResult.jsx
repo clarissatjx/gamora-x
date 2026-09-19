@@ -6,7 +6,7 @@ import Panel from '../Panel';
 import SaveButton from '../SaveButton';
 import UploadNewButton from '../UploadNewButton';
 import Verdict from '../Verdict';
-import SideDistribution from '../SideDistribution';
+import AsymGauge from '../AsymGauge';
 import { COLORS } from '../../theme';
 import { RELIABILITY_NOTE } from '../../reliabilityNotes';
 import { downloadCsv } from '../../utils/csv';
@@ -65,13 +65,15 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
       />
 
       <Panel
-        heading="How the two rails compare"
-        sub="Each dot is one axle box's vibration energy over the 1 s window; the bar marks that side's average. The two spreads overlap heavily — the verdict comes from the shift between their centres, not from any single channel."
+        heading="Where this recording sits"
+        sub="Side imbalance — Side I's vibration energy minus Side II's — against the three groups of labelled recordings. One of several signals the model weighs, not the verdict itself."
       >
-        <SideDistribution
-          channels={result.channels}
-          predictedSide={result.csv_prediction}
-          asymContext={result.asym_context}
+        <AsymGauge
+          value={result.asym}
+          bands={result.asym_bands}
+          axis={result.asym_axis}
+          corroborates={result.asym_context?.corroborates}
+          prediction={result.csv_prediction}
         />
       </Panel>
 

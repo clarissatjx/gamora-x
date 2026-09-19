@@ -26,6 +26,17 @@ RAIL_RELIABILITY_NOTE = (
 RAIL_ASYM_HEALTHY_MEAN = -0.005
 RAIL_ASYM_HEALTHY_SD = 0.034
 
+# Per-class asymmetry distributions, same source, for the UI's gauge. Drawn as overlapping
+# +/-1 sd bands: Side I's band lies almost entirely on top of healthy, Side II's barely
+# touches it, which is the whole reason one is detected well and the other is not.
+RAIL_ASYM_BANDS = (
+    {"label": "Side II corrugation", "lo": -0.173, "hi": -0.045, "mean": -0.109, "n": 24},
+    {"label": "healthy track", "lo": -0.038, "hi": 0.029, "mean": -0.005, "n": 196},
+    {"label": "Side I corrugation", "lo": -0.034, "hi": 0.096, "mean": 0.031, "n": 14},
+)
+# Axis limits: the full observed range across all three classes, rounded outward.
+RAIL_ASYM_AXIS = (-0.20, 0.17)
+
 # A "Normal" verdict is not equally strong evidence about both rails — recall is 83% for
 # Side II but only 50% for Side I. Saying "no corrugation" without that distinction
 # overstates what the model actually checked.

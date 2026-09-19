@@ -298,30 +298,38 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
   box-shadow: 0 10px 30px rgba(0,0,0,0.45);
 }
 
-/* Side-distribution plot (Rail) — two spreads on one scale, means marked. Deliberately not
-   a per-channel bar chart: see components/SideDistribution.jsx for why. */
-.gx-dist { display: flex; flex-direction: column; gap: 14px; }
-.gx-dist-row { display: flex; align-items: center; gap: 12px; }
-.gx-dist-label { width: 58px; flex: none; font-size: 12.5px; color: var(--gx-muted); }
-.gx-dist-track {
-  position: relative; flex: 1; height: 30px; border-radius: 4px;
+/* Asymmetry gauge (Rail) — three labelled populations on one axis, this recording drawn
+   through them. See components/AsymGauge.jsx for why it is not a per-channel chart. */
+.gx-gauge { --gx-gauge-gutter: 150px; display: flex; flex-direction: column; gap: 4px; }
+.gx-gauge-rows { position: relative; display: flex; flex-direction: column; gap: 7px; }
+.gx-gauge-row { display: flex; align-items: center; gap: 12px; }
+.gx-gauge-name {
+  width: calc(var(--gx-gauge-gutter) - 12px); flex: none; font-size: 12.5px;
+  color: var(--gx-muted); display: flex; justify-content: space-between; gap: 8px;
+}
+.gx-gauge-n { color: var(--gx-faint); font-size: 11px; }
+.gx-gauge-track {
+  position: relative; flex: 1; height: 26px; border-radius: 4px;
   background: var(--gx-grid); border: 1px solid var(--gx-border-soft);
 }
-.gx-dist-dot {
-  position: absolute; top: 50%; width: 7px; height: 7px; border-radius: 50%;
-  transform: translate(-50%, -50%); opacity: 0.55; cursor: default;
+.gx-gauge-band { position: absolute; top: 3px; bottom: 3px; border-radius: 3px; border: 1px solid; }
+.gx-gauge-bandmean { position: absolute; top: 6px; bottom: 6px; width: 2px; opacity: 0.8; transform: translateX(-50%); }
+.gx-gauge-needle { position: absolute; top: -2px; bottom: -2px; transform: translateX(-50%); pointer-events: none; }
+.gx-gauge-needle-line { width: 2px; height: 100%; margin: 0 auto; background: var(--gx-text); }
+.gx-gauge-needle-tag {
+  position: absolute; top: -20px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+  font-size: 11.5px; padding: 1px 6px; border-radius: 4px;
+  background: var(--gx-text); color: var(--gx-bg);
 }
-.gx-dist-dot:hover { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
-.gx-dist-mean { position: absolute; top: 3px; bottom: 3px; width: 2px; transform: translateX(-50%); }
-.gx-dist-tip {
-  position: absolute; bottom: calc(100% + 6px); transform: translateX(-50%);
-  white-space: nowrap; font-size: 11.5px; padding: 3px 7px; border-radius: 4px;
-  background: var(--gx-panel); border: 1px solid var(--gx-border); color: var(--gx-text); z-index: 5;
+.gx-gauge-axis { position: relative; height: 16px; margin-left: var(--gx-gauge-gutter); }
+.gx-gauge-tick {
+  position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--gx-faint);
 }
-.gx-dist-mean-val { width: 52px; flex: none; text-align: right; font-size: 12px; color: var(--gx-muted); }
-.gx-dist-foot {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
-  font-size: 12.5px; color: var(--gx-faint);
-  border-top: 1px solid var(--gx-border-soft); padding-top: 10px; margin-top: 2px;
+.gx-gauge-caption { font-size: 12.5px; color: var(--gx-faint); line-height: 1.55; margin: 8px 0 0; }
+
+@media (max-width: 640px) {
+  /* The band labels eat the axis on a phone — shorten the gutter and let them wrap. */
+  .gx-gauge { --gx-gauge-gutter: 104px; }
+  .gx-gauge-name { display: block; line-height: 1.3; }
+  .gx-gauge-n { display: none; }
 }
-.gx-dist-foot-k { color: var(--gx-muted); }
