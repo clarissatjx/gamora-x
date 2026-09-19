@@ -4,10 +4,10 @@ import Glossed from '../Glossed';
 import HistogramChart from '../HistogramChart';
 import Metrics from '../Metrics';
 import Panel from '../Panel';
-import ReliabilityPanel from '../ReliabilityPanel';
 import SaveButton from '../SaveButton';
 import StressChart from '../StressChart';
 import Verdict from '../Verdict';
+import { RELIABILITY_NOTE } from '../../reliabilityNotes';
 import { buildSavedEntry } from '../../utils/savedEntry';
 import { downloadCsv } from '../../utils/csv';
 
@@ -39,8 +39,8 @@ export default function ShmResult({ result, isSaved, onSave, onRemove }) {
         tierLabel={result.tier_label}
         confidenceLabel={result.confidence_label}
         reasoning={result.reasoning}
+        reliabilityNote={RELIABILITY_NOTE.shm}
       />
-      <ReliabilityPanel title="How reliable is this?" note={result.reliability_note} />
 
       <Metrics
         items={[

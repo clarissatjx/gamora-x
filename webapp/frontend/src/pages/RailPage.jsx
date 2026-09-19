@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Banner from '../components/Banner';
 import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
@@ -20,7 +20,9 @@ async function callApi(path, opts) {
   return res.json();
 }
 
-export default function RailPage({ isSaved, onSave, onRemove, result, setResult, onRecord }) {
+export default function RailPage({
+  isSaved, onSave, onRemove, result, setResult, onRecord, pendingFile, onConsumePendingFile,
+}) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('single');
@@ -54,6 +56,15 @@ export default function RailPage({ isSaved, onSave, onRemove, result, setResult,
       setLoading(false);
     }
   };
+
+  // A file uploaded straight from a Get Started tile lands here already switched to this tab.
+  useEffect(() => {
+    if (pendingFile) {
+      runFile(pendingFile);
+      onConsumePendingFile();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFile]);
 
   return (
     <div>

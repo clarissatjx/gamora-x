@@ -2,11 +2,11 @@ import Banner from '../Banner';
 import DataTable from '../DataTable';
 import Metrics from '../Metrics';
 import Panel from '../Panel';
-import ReliabilityPanel from '../ReliabilityPanel';
 import SaveButton from '../SaveButton';
 import Verdict from '../Verdict';
 import ChannelChart from '../ChannelChart';
 import { COLORS } from '../../theme';
+import { RELIABILITY_NOTE } from '../../reliabilityNotes';
 import { downloadCsv } from '../../utils/csv';
 import { buildSavedEntry } from '../../utils/savedEntry';
 
@@ -36,11 +36,7 @@ export default function RailResult({ result, isSaved, onSave, onRemove }) {
         tierLabel={result.tier_label}
         confidenceLabel={result.confidence_label}
         reasoning={result.reasoning}
-      />
-      <ReliabilityPanel
-        title="How reliable is this?"
-        note={result.reliability.note}
-        lines={result.reliability.classes}
+        reliabilityNote={RELIABILITY_NOTE.rail}
       />
 
       <Metrics

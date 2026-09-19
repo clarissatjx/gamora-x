@@ -37,7 +37,16 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
   const [historyOpenFor, setHistoryOpenFor] = useState(null);
   const [results, setResults] = useState({ door: null, acv: null, rail: null, shm: null });
+  const [pendingUpload, setPendingUpload] = useState(null); // { subsystem, file } | null
   const { saved, save, remove, isSaved } = useSavedResults();
+
+  // Lets the Get Started tiles hand a file straight to a subsystem page without owning any
+  // upload logic themselves — switch tabs, stash the file, the target page picks it up and
+  // clears it once its own runFile has it.
+  const handleQuickUpload = (key, file) => {
+    setPendingUpload({ subsystem: key, file });
+    setView(key);
+  };
 
   // One history log per subsystem, all owned here — the nav arrow that opens a log and the
   // page that writes to it are siblings, so neither can hold this state on its own.
@@ -68,8 +77,8 @@ export default function App() {
             <div className="gx-brand">
               <div className="gx-mark" />
               <div>
-                <div className="gx-name">gamora</div>
-                <div className="gx-name-sub">Condition monitoring</div>
+                <div className="gx-name">GAMORA</div>
+                <div className="gx-name-sub">Train Condition monitoring</div>
               </div>
             </div>
             <button className="gx-sidebar-toggle" onClick={toggleSidebar} title="Collapse sidebar" aria-label="Collapse sidebar">
@@ -169,9 +178,12 @@ export default function App() {
           <div key={key} style={{ display: view === key ? 'block' : 'none' }}>
             <Page
               onOpen={setView}
+              onUpload={handleQuickUpload}
               saved={saved} isSaved={isSaved} onSave={save} onRemove={remove}
               result={results[key]} setResult={(v) => setResultFor(key, v)}
               history={HISTORY[key]?.history} onRecord={HISTORY[key]?.record}
+              pendingFile={pendingUpload?.subsystem === key ? pendingUpload.file : null}
+              onConsumePendingFile={() => setPendingUpload(null)}
             />
           </div>
         ))}

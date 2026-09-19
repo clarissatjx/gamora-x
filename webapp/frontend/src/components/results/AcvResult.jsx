@@ -5,10 +5,10 @@ import Metrics from '../Metrics';
 import Panel from '../Panel';
 import Pill from '../Pill';
 import RankingBars from '../RankingBars';
-import ReliabilityPanel from '../ReliabilityPanel';
 import SaveButton from '../SaveButton';
 import Verdict from '../Verdict';
 import { COLORS } from '../../theme';
+import { RELIABILITY_NOTE } from '../../reliabilityNotes';
 import { buildSavedEntry } from '../../utils/savedEntry';
 import { downloadCsv } from '../../utils/csv';
 
@@ -30,8 +30,8 @@ export default function AcvResult({ result, isSaved, onSave, onRemove }) {
         tierLabel={result.tier_label}
         confidenceLabel={result.confidence_label}
         reasoning={result.reasoning}
+        reliabilityNote={RELIABILITY_NOTE.acv}
       />
-      <ReliabilityPanel title="How reliable is this?" note={result.reliability_note} />
 
       <Metrics
         items={[
