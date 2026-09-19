@@ -17,21 +17,25 @@ const CLASS_COLOR = { Normal: COLORS.green, 'Side I': COLORS.accent, 'Side II': 
 // The full "here's what we found" body for a Rail Corrugation result — shared by the live
 // page and the Saved tab so a saved snapshot gets the same evidence, not a stripped summary.
 
-// The model's own scores, and what that class's calls have historically been worth. Kept to
-// a hover: 88% of moving recordings come back at >=99% confidence, so a permanent chart of
-// this would read as a flat 100% nearly every time — and a confident Normal is exactly the
-// case where Side I hides, so it would overstate certainty rather than inform.
+// What the model made of THIS recording. Deliberately says nothing about the model's track
+// record — that is the neighbouring "How reliable is this?" hover, and having both quote the
+// same recall and precision figures just says one thing twice.
+//
+// Kept to a hover rather than a chart: 88% of moving recordings come back at >=99%
+// confidence, so a permanent version would read as a flat 100% nearly every time — and a
+// confident Normal is exactly the case where Side I hides, so it would overstate certainty
+// rather than inform.
 function probabilityTip(result) {
   const probs = result.probabilities;
   if (!probs) return undefined;
   const ranked = Object.entries(probs).sort((a, b) => b[1] - a[1]);
   const scores = ranked.map(([k, v]) => `${k} ${(v * 100).toFixed(0)}%`).join(', ');
-  const record = (result.reliability?.classes ?? [])
-    .find((c) => c.label === result.csv_prediction);
-  const line = record
-    ? ` When this model calls ${record.label}, it is right ${Math.round(record.precision * 100)}% of the time, and it catches ${Math.round(record.recall * 100)}% of the ${record.label} recordings that really are.`
-    : '';
-  return `The model scored the three answers at ${scores}.${line}`;
+  const margin = ranked.length > 1 ? (ranked[0][1] - ranked[1][1]) * 100 : null;
+  const closeness = margin == null ? ''
+    : margin < 20
+      ? ` Only ${margin.toFixed(0)} points separate the top two, so this was a close call.`
+      : ` The top answer leads the next by ${margin.toFixed(0)} points.`;
+  return `For this recording the model scored the three answers at ${scores}.${closeness}`;
 }
 
 export default function RailResult({ result, isSaved, onSave, onRemove, onUploadNew, uploading }) {
@@ -55,7 +59,7 @@ export default function RailResult({ result, isSaved, onSave, onRemove, onUpload
         tierLabel={result.tier_label}
         confidenceLabel={result.confidence_label}
         reasoning={result.reasoning}
-        reliabilityNote={[result.reliability?.class_line, RELIABILITY_NOTE.rail]
+        reliabilityNote={[RELIABILITY_NOTE.rail, result.reliability?.class_line]
           .filter(Boolean).join(' ')}
         scoresNote={result.stationary ? undefined : probabilityTip(result)}
       />
