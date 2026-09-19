@@ -1,11 +1,13 @@
 // One-line, plain-language definitions for the domain/ML jargon that shows up in verdict text,
 // reliability notes and evidence panels. Written for an engineer new to this dataset, not for
 // someone who already knows what back-EMF or rainflow counting means.
+// Glossed as whole phrases ("rainflow cycles", not "rainflow" + "cycles" separately), so the
+// SHM metric label and banner get one tooltip covering the full title.
+const RAINFLOW = "Rainflow counting breaks a messy stress signal into discrete load cycles — each "
+  + "one peak-to-valley stress swing — so fatigue damage can be counted cycle by cycle instead of "
+  + "guessed from the raw signal. These are the rainflow cycles.";
+
 export const GLOSSARY = {
-  cycle: "One full door movement — open then close — cut out of the continuous recording. A "
-    + "single uploaded file is one long stream covering many doors opening and closing back to "
-    + "back; the model's first job is finding where each cycle starts and ends before it can "
-    + "judge that cycle on its own.",
   'abnormal resistance': "The motor is drawing more current (or less back-EMF) than a healthy "
     + "cycle of the same kind of movement would — the electrical signature of something "
     + "physically resisting the door, such as an obstruction, binding track or worn part. It "
@@ -34,9 +36,8 @@ export const GLOSSARY = {
   'cooling setpoint': "The cabin temperature the air-conditioning unit is trying to reach. A car "
     + "stuck well above its setpoint while its neighbours reach theirs is the signature of lost "
     + "refrigerant.",
-  rainflow: "A method for breaking a messy stress signal into a list of discrete load cycles "
-    + "(peaks and valleys), so fatigue damage can be counted cycle by cycle instead of guessed "
-    + "from the raw signal.",
+  'rainflow cycles': RAINFLOW,
+  'rainflow counting': RAINFLOW,
   'S-N exponent': "How steeply a material's fatigue life drops as stress swings get bigger, "
     + "from its stress-life (S-N) curve. A higher exponent means large swings do "
     + "disproportionately more damage than small ones.",

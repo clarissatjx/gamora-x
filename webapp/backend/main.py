@@ -460,8 +460,8 @@ def acv_sample():
 
 # ----------------------------------------------------------------------------------- SHM -----
 
-SHM_N_HIST_BINS = 10
-SHM_SHARE_HIGHLIGHT = 0.15
+SHM_CURVE_POINTS = 600
+SHM_TRACE_BUCKETS = 2000  # stress chart: min + max per bucket -> ~4000 points, as before
 _shm_bundle = None
 
 
@@ -486,18 +486,86 @@ def shm_top_excursions(x: np.ndarray, k: int = 8, min_gap_frac: float = 0.02) ->
     return np.array(chosen)
 
 
-def shm_histogram(res: dict) -> list[dict]:
-    """Mirrors app/inference/shm.py::histogram's binning (chart itself omitted)."""
-    rng, cnt, share = res["rng"], res["cnt"], res["contrib_share"]
-    edges = np.linspace(0, rng.max() * 1.0001, SHM_N_HIST_BINS + 1)
-    which = np.clip(np.digitize(rng, edges) - 1, 0, SHM_N_HIST_BINS - 1)
-    rows = []
-    for b in range(SHM_N_HIST_BINS):
-        m = which == b
-        share_b = float(share[m].sum())
-        rows.append({"bin": f"{edges[b]:.0f}–{edges[b + 1]:.0f}", "cycles": float(cnt[m].sum()),
-                     "share": share_b, "hot": share_b >= SHM_SHARE_HIGHLIGHT})
-    return rows
+def shm_trace_indices(x: np.ndarray, keep: np.ndarray, n_buckets: int = SHM_TRACE_BUCKETS) -> np.ndarray:
+    """Sample indices to draw: the min and max of each bucket, in time order, plus `keep` (the
+    circled peaks). Plain every-Nth thinning skips short spikes, which left the line well short
+    of the circles it was supposed to pass through; min/max keeps the true envelope."""
+    edges = np.linspace(0, len(x), min(n_buckets, len(x)) + 1).astype(int)
+    idx = [0, len(x) - 1, *(int(k) for k in keep)]
+    for a, b in zip(edges[:-1], edges[1:]):
+        if b > a:
+            seg = x[a:b]
+            idx += [a + int(seg.argmin()), a + int(seg.argmax())]
+    return np.unique(idx)
+
+
+def shm_rainflow_positions(x: np.ndarray):
+    """subsystems/shm/rainflow.py::cycles (same reversals, same stack rules, residual weight
+    0.5), but also returning the sample index each counted cycle is booked at: the turning point
+    that completes its range. Kept here rather than in the subsystem so the scored package is
+    untouched; shm_damage_curve checks the ranges/counts match before trusting the positions."""
+    x = np.asarray(x, dtype=float)
+    d = np.diff(x)
+    nz = np.nonzero(d)[0]
+    if len(nz) == 0:
+        idx = np.array([0, len(x) - 1])
+    else:
+        s = np.sign(d[nz])
+        change = np.nonzero(s[1:] != s[:-1])[0] + 1
+        idx = np.concatenate(([0], nz[change], [len(x) - 1]))
+    stack, rng, cnt, at = [], [], [], []
+    for p, i in zip(x[idx], idx):
+        stack.append((p, int(i)))
+        while len(stack) >= 3:
+            x_ = abs(stack[-1][0] - stack[-2][0])
+            y_ = abs(stack[-2][0] - stack[-3][0])
+            if x_ < y_:
+                break
+            rng.append(y_)
+            at.append(stack[-2][1])
+            if len(stack) == 3:
+                cnt.append(0.5)
+                stack.pop(0)
+            else:
+                cnt.append(1.0)
+                del stack[-3:-1]
+    for k in range(len(stack) - 1):
+        rng.append(abs(stack[k + 1][0] - stack[k][0]))
+        cnt.append(0.5)
+        at.append(stack[k + 1][1])
+    return np.asarray(rng, float), np.asarray(cnt, float), np.asarray(at, int)
+
+
+def shm_damage_curve(x: np.ndarray, res: dict, damage: float, m: float) -> dict | None:
+    """Running Miner's-rule total across the recording, scaled so it ends exactly at `damage`
+    (the whole-file correction factor is spread evenly). None if the positioned recount ever
+    disagrees with the model's own cycles — better no chart than a curve that doesn't add up."""
+    rng, cnt, at = shm_rainflow_positions(x)
+    if not (np.array_equal(rng, res["rng"]) and np.array_equal(cnt, res["cnt"])):
+        return None
+    contrib = cnt * rng ** m
+    order = np.argsort(at, kind="stable")
+    at_sorted = at[order]
+    cum = np.cumsum(contrib[order]) / contrib.sum() * damage
+    grid = np.linspace(0, len(x) - 1, SHM_CURVE_POINTS).round().astype(int)
+    pos = np.searchsorted(at_sorted, grid, side="right") - 1
+    values = np.where(pos >= 0, cum[np.maximum(pos, 0)], 0.0)
+
+    def first_reached(level: float):
+        k = np.nonzero(cum >= level)[0]
+        return int(at_sorted[k[0]]) if len(k) else None
+
+    # Urgency bands, lowest first, from the same floors rel.shm_severity uses for the verdict.
+    # The top band is open-ended ("to": None) — no ceiling is drawn.
+    floors = sorted(rel.SHM_TIER_FLOORS)
+    bounds = [0.0] + [f for f, _ in floors] + [None]
+    tiers = [rel.OK] + [t for _, t in floors]
+    return {
+        "points": [{"i": int(i), "damage": float(v)} for i, v in zip(grid, values)],
+        "tiers": [{"tier": t, "label": rel.TIER_LABEL[t], "from": lo, "to": hi,
+                   "entered_at": 0 if lo == 0 else first_reached(lo)}
+                  for t, lo, hi in zip(tiers, bounds, bounds[1:])],
+    }
 
 
 def build_shm_result(data: bytes, file_id: str) -> dict:
@@ -521,9 +589,8 @@ def build_shm_result(data: bytes, file_id: str) -> dict:
         "1.0 means the fatigue life at this point is fully used up."
     )
 
-    step = max(1, len(x) // 4000)
     peaks_idx = shm_top_excursions(x)
-    trace = [{"i": int(i), "stress": float(v)} for i, v in zip(range(0, len(x), step), x[::step])]
+    trace = [{"i": int(i), "stress": float(x[i])} for i in shm_trace_indices(x, peaks_idx)]
     peaks = [{"i": int(i), "stress": float(x[i])} for i in peaks_idx]
 
     return {
@@ -537,10 +604,12 @@ def build_shm_result(data: bytes, file_id: str) -> dict:
         "max_range": res["max_range"],
         "tier": tier, "tier_label": rel.TIER_LABEL[tier],
         "confidence_label": "Medium" if damage < 0.8 else "High",
-        "headline": f"Damage {damage:.3f} of 1.0", "reasoning": reasoning,
+        # 6 dp everywhere the damage is shown — the precision of the submitted CSV, so the
+        # headline, the metric tile and the downloaded file all read the same number.
+        "headline": f"Damage {damage:.6f} of 1.0", "reasoning": reasoning,
         "reliability_note": rel.SHM_RELIABILITY_NOTE,
         "trace": trace, "peaks": peaks, "mean": float(x.mean()),
-        "histogram": shm_histogram(res),
+        "damage_curve": shm_damage_curve(x, res, damage, b["m"]),
         "correction_factor": res["correction_factor"], "analytic": res["analytic"],
         "use_correction": bool(b["use_correction"]),
         "official_score": "0.974",

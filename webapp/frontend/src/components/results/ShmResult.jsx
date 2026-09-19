@@ -1,6 +1,6 @@
 import Banner from '../Banner';
 import Glossed from '../Glossed';
-import HistogramChart from '../HistogramChart';
+import DamageCurveChart from '../DamageCurveChart';
 import Metrics from '../Metrics';
 import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
@@ -48,7 +48,7 @@ export default function ShmResult({ result, isSaved, onSave, onRemove, onUploadN
 
       <Metrics
         items={[
-          { label: 'Cumulative damage', value: result.damage.toFixed(4), note: '0 = fresh, 1 = life used up', color: 'var(--gx-accent)' },
+          { label: 'Cumulative damage', value: result.damage.toFixed(6), note: '0 = fresh, 1 = life used up', color: 'var(--gx-accent)' },
           { label: 'Rainflow cycles', value: result.n_cycles.toLocaleString(undefined, { maximumFractionDigits: 0 }), note: `${result.n_reversals.toLocaleString()} reversals` },
           { label: 'Peak stress range', value: result.max_range.toFixed(1), note: 'largest single cycle' },
         ]}
@@ -61,9 +61,16 @@ export default function ShmResult({ result, isSaved, onSave, onRemove, onUploadN
         </div>
       </Panel>
 
-      <Panel heading="Rainflow cycle histogram" sub="Share of total damage by stress-range bin.">
-        <HistogramChart rows={result.histogram} />
-      </Panel>
+      {/* Absent on results saved before this chart existed, null if the positioned recount
+          didn't match the model's cycles — skip the panel rather than show a wrong curve. */}
+      {result.damage_curve && (
+        <Panel
+          heading="Cumulative fatigue damage"
+          sub={<Glossed text="How the damage builds up across the recording as the rainflow cycles complete, shaded by the urgency level it has reached." />}
+        >
+          <DamageCurveChart curve={result.damage_curve} nSamples={result.n_samples} />
+        </Panel>
+      )}
 
       <NotesPanel subsystem="shm" fileId={result.file_id} />
     </>
