@@ -461,7 +461,6 @@ def acv_sample():
 # ----------------------------------------------------------------------------------- SHM -----
 
 SHM_CURVE_POINTS = 600
-SHM_DAMAGE_CEILING = 1.0  # Miner's rule: fatigue life used up -> replace the component
 _shm_bundle = None
 
 
@@ -537,18 +536,18 @@ def shm_damage_curve(x: np.ndarray, res: dict, damage: float, m: float) -> dict 
     grid = np.linspace(0, len(x) - 1, SHM_CURVE_POINTS).round().astype(int)
     pos = np.searchsorted(at_sorted, grid, side="right") - 1
     values = np.where(pos >= 0, cum[np.maximum(pos, 0)], 0.0)
+
     def first_reached(level: float):
         k = np.nonzero(cum >= level)[0]
         return int(at_sorted[k[0]]) if len(k) else None
 
     # Urgency bands, lowest first, from the same floors rel.shm_severity uses for the verdict.
+    # The top band is open-ended ("to": None) — no ceiling is drawn.
     floors = sorted(rel.SHM_TIER_FLOORS)
-    bounds = [0.0] + [f for f, _ in floors] + [SHM_DAMAGE_CEILING]
+    bounds = [0.0] + [f for f, _ in floors] + [None]
     tiers = [rel.OK] + [t for _, t in floors]
     return {
         "points": [{"i": int(i), "damage": float(v)} for i, v in zip(grid, values)],
-        "ceiling": SHM_DAMAGE_CEILING,
-        "crossed_at": first_reached(SHM_DAMAGE_CEILING),
         "tiers": [{"tier": t, "label": rel.TIER_LABEL[t], "from": lo, "to": hi,
                    "entered_at": 0 if lo == 0 else first_reached(lo)}
                   for t, lo, hi in zip(tiers, bounds, bounds[1:])],

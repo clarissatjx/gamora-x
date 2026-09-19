@@ -66,7 +66,7 @@ export default function ShmResult({ result, isSaved, onSave, onRemove, onUploadN
       {result.damage_curve && (
         <Panel
           heading="Cumulative fatigue damage"
-          sub={<Glossed text="How the damage builds up across the recording as the rainflow cycles complete. The red line at 1.0 is where the fatigue life is used up and the component needs a complete replacement." />}
+          sub={<Glossed text="How the damage builds up across the recording as the rainflow cycles complete, shaded by the urgency level it has reached." />}
         >
           <DamageCurveChart curve={result.damage_curve} nSamples={result.n_samples} />
         </Panel>
