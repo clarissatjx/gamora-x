@@ -1,6 +1,6 @@
 import Banner from '../Banner';
 import Glossed from '../Glossed';
-import HistogramChart from '../HistogramChart';
+import DamageCurveChart from '../DamageCurveChart';
 import Metrics from '../Metrics';
 import NotesPanel from '../NotesPanel';
 import Panel from '../Panel';
@@ -61,9 +61,16 @@ export default function ShmResult({ result, isSaved, onSave, onRemove, onUploadN
         </div>
       </Panel>
 
-      <Panel heading="Rainflow cycle histogram" sub="Share of total damage by stress-range bin.">
-        <HistogramChart rows={result.histogram} />
-      </Panel>
+      {/* Absent on results saved before this chart existed, null if the positioned recount
+          didn't match the model's cycles — skip the panel rather than show a wrong curve. */}
+      {result.damage_curve && (
+        <Panel
+          heading="Cumulative fatigue damage"
+          sub={<Glossed text="How the damage builds up across the recording as the rainflow cycles complete. The red line at 1.0 is where the fatigue life is used up and the component needs a complete replacement." />}
+        >
+          <DamageCurveChart curve={result.damage_curve} nSamples={result.n_samples} />
+        </Panel>
+      )}
 
       <NotesPanel subsystem="shm" fileId={result.file_id} />
     </>
