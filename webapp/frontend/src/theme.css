@@ -357,23 +357,3 @@ table.gx thead th:first-child, table.gx tbody td:first-child { padding-left: 19p
   .gx-gauge-name { display: block; line-height: 1.3; }
   .gx-gauge-n { display: none; }
 }
-
-/* Class probabilities (Rail) - the model's own output. Replaces the asymmetry gauge on the
-   result page; see components/ClassProbabilities.jsx for why. */
-.gx-prob { display: flex; flex-direction: column; gap: 9px; }
-.gx-prob-row { display: flex; align-items: center; gap: 12px; }
-.gx-prob-name { width: 96px; flex: none; font-size: 13px; color: var(--gx-muted); }
-.gx-prob-track {
-  position: relative; flex: 1; height: 22px; border-radius: 4px;
-  background: var(--gx-grid); border: 1px solid var(--gx-border-soft); overflow: hidden;
-}
-.gx-prob-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px 0 0 3px; }
-.gx-prob-val { width: 44px; flex: none; text-align: right; font-size: 13px; color: var(--gx-faint); }
-.gx-prob-foot {
-  font-size: 12.5px; color: var(--gx-faint); line-height: 1.55;
-  border-top: 1px solid var(--gx-border-soft); padding-top: 10px; margin: 4px 0 0;
-}
-
-@media (max-width: 640px) {
-  .gx-prob-name { width: 70px; font-size: 12px; }
-}

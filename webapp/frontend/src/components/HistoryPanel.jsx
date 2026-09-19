@@ -2,9 +2,10 @@ import { useState } from 'react';
 import Pill from './Pill';
 import { tierColor } from '../theme';
 
-function HistoryRow({ entry, onView, onDownload, onRename }) {
+function HistoryRow({ entry, onView, onDownload, onRename, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(entry.label || entry.fileId);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const color = tierColor(entry.tier);
   const when = new Date(entry.ranAt);
 
@@ -51,6 +52,19 @@ function HistoryRow({ entry, onView, onDownload, onRename }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
         <button className="gx-btn" onClick={() => onView(entry)}>View</button>
         <button className="gx-btn" onClick={() => onDownload(entry)}>⬇ CSV</button>
+        {confirmingDelete ? (
+          <button
+            className="gx-btn"
+            style={{ color: 'var(--gx-red)' }}
+            onClick={() => onDelete(entry.id)}
+            onBlur={() => setConfirmingDelete(false)}
+            autoFocus
+          >
+            Confirm?
+          </button>
+        ) : (
+          <button className="gx-btn" onClick={() => setConfirmingDelete(true)}>Delete</button>
+        )}
       </div>
     </div>
   );
@@ -58,7 +72,7 @@ function HistoryRow({ entry, onView, onDownload, onRename }) {
 
 // The "second sidebar" — App.jsx docks this between the main nav and the page content and
 // animates its width open/closed; this component just fills whatever width it's given.
-export default function HistoryPanel({ width, label, history, onClose, onClear, onView, onDownload, onRename }) {
+export default function HistoryPanel({ width, label, history, onClose, onClear, onView, onDownload, onRename, onDelete }) {
   return (
     <div style={{ width, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="gx-drawer-head">
@@ -78,7 +92,7 @@ export default function HistoryPanel({ width, label, history, onClose, onClear, 
           </p>
         ) : (
           history.map((entry) => (
-            <HistoryRow key={entry.id} entry={entry} onView={onView} onDownload={onDownload} onRename={onRename} />
+            <HistoryRow key={entry.id} entry={entry} onView={onView} onDownload={onDownload} onRename={onRename} onDelete={onDelete} />
           ))
         )}
       </div>

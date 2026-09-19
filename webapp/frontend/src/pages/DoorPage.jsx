@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Banner from '../components/Banner';
 import BatchUploader from '../components/BatchUploader';
 import Dropzone from '../components/Dropzone';
+import Glossed from '../components/Glossed';
 import SaveButton from '../components/SaveButton';
 import Spinner from '../components/Spinner';
 import UploadModeToggle from '../components/UploadModeToggle';
@@ -61,12 +62,21 @@ export default function DoorPage({
     <div>
       <h1 className="gx-h1">Door — cycle detection &amp; classification</h1>
       <p className="gx-sub">
-        Segments a continuous stream into open/close cycles, classifies each Normal or
-        Abnormal resistance.
+        <Glossed text="Segments a continuous stream into open/close cycles, classifies each Normal or
+        Abnormal resistance." />
       </p>
 
       {!result && (
         <>
+          <Banner
+            icon="i"
+            color="var(--gx-dim)"
+            text="New to this dataset? A door controller streams motor current, voltage and position
+            continuously — one uploaded file covers many doors opening and closing back to back, with
+            no markers for where one cycle ends and the next begins. This page finds those cycle
+            boundaries first, then checks each cycle's motor current against a healthy baseline to
+            flag abnormal resistance. Hover any underlined term for a plain-language definition."
+          />
           <Banner
             icon="⬆"
             text="Drop a recording — cycles are found, scored and charted automatically. No need to split the file up first."

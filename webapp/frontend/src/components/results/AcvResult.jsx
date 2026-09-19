@@ -51,9 +51,6 @@ export default function AcvResult({ result, isSaved, onSave, onRemove, onUploadN
         <div style={{ flex: '1 1 380px' }}>
           <Panel heading="Ranked cars — most to least likely leak">
             <RankingBars scores={result.scores} />
-            <div className="mono" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--gx-border)', fontSize: 12.5, color: 'var(--gx-faint)', wordBreak: 'break-all' }}>
-              ranked_cars = {result.ranked_cars.join('|')}
-            </div>
           </Panel>
         </div>
         <div style={{ flex: '1.15 1 420px' }}>

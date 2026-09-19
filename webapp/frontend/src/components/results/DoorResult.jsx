@@ -61,14 +61,16 @@ export default function DoorResult({ result, isSaved, onSave, onRemove, onUpload
       />
 
       <Panel heading="Motor current with detected door cycles"
-             sub="Shaded bands are detected cycles, cyan is motor current, the dashed grey line is door leaf position.">
+             sub={<Glossed text="Shaded bands are detected cycles, cyan is motor current, the dashed grey line is door leaf position. Hover a band to see that cycle's status." />}>
         <DoorChart trace={result.chart.trace} bands={result.chart.bands} />
       </Panel>
 
       {abnormalCycles.length > 0 && (
         <Panel
           heading={`Why cycle ${selectedCycle} was flagged`}
-          sub={abnormalCycles.length > 1 ? `${abnormalCycles.length} cycles were flagged — pick one to see its own breakdown.` : undefined}
+          sub={abnormalCycles.length > 1
+            ? <Glossed text={`${abnormalCycles.length} cycles were flagged — pick one to see its own breakdown.`} />
+            : undefined}
         >
           {abnormalCycles.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12, marginBottom: 4 }}>
