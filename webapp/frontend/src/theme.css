@@ -85,9 +85,10 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
   background: var(--gx-panel); border: 1px solid var(--gx-border); border-radius: 3px;
   padding: 17px 19px 16px; margin-bottom: 14px;
 }
-.gx-panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px; }
+.gx-panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.gx-panel-head:has(+ .gx-panel-s) { margin-bottom: 0; }
 .gx-panel-h { font-size: 15px; font-weight: 700; color: var(--gx-text); }
-.gx-panel-s { font-size: 13px; color: var(--gx-muted); margin-top: 2px; }
+.gx-panel-s { font-size: 13px; color: var(--gx-muted); margin-top: 2px; margin-bottom: 12px; }
 .gx-prose { margin: 0; font-size: 13.5px; color: var(--gx-body); }
 
 .pill {
