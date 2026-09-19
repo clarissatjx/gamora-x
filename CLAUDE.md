@@ -5,7 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project
 
 Team gamora-x's submission for **NebulaX Hackathon PS3 (Train Condition Monitoring)**: four
-independent sensor-based models (Door, ACV, Rail Corrugation, SHM) behind one Streamlit app.
+independent sensor-based models (Door, ACV, Rail Corrugation, SHM) behind one web app —
+`webapp/` (FastAPI + React), deployed at https://gamora-cdm-307993205824.asia-southeast1.run.app/. The earlier Streamlit app in `app/` still
+runs, but the web app is what's submitted and shown in the demo video.
 All four are built, scored on the organisers' held-out sets, and wired into the app — see
 [README.md](README.md) for results and commands. The spec is
 [references/PS3_Problem_Statement.md](references/PS3_Problem_Statement.md); each subsystem's
@@ -14,7 +16,9 @@ authoritative Info Kit is under `references/<Subsystem>/`.
 ## Commands
 
 ```bash
-streamlit run app/app.py                              # the app (lands on the overview)
+uvicorn webapp.backend.main:app --reload --port 8000  # the submitted app's backend (repo root)
+cd webapp/frontend && npm run dev                     # ...and its frontend, http://localhost:5173
+streamlit run app/app.py                              # the earlier Streamlit app
 python -m subsystems.door.scoring                     # self-tests: door scoring, shm rainflow, shm scoring
 python -m subsystems.<name>.evaluate                  # holdout / LOO score + Test drift check (door, shm, acv)
 python -m subsystems.rail_corrugation.verify_inference
@@ -38,7 +42,12 @@ change, re-run the packager so `Optional_Items/*/code` doesn't drift from `subsy
   `evaluate`. Each has a `PLAN.md` holding the data facts, every experiment (including rejected
   ones), validation numbers and decisions — the write-up's source material. Rail's package
   was built by a teammate and has a wider set of phase scripts; its PLAN.md indexes them.
-- `app/app.py` is the shell (sidebar nav, run mode, evidence toggle, theme toggle, model
+- `webapp/` is the submitted app. `backend/main.py` (FastAPI) imports `subsystems/*` and
+  `app/reliability.py` directly (never `app/inference/*`, so no Streamlit dependency) and has one
+  `build_<name>_result()` per subsystem returning the verdict/evidence as JSON; `frontend/src/`
+  is React with one page per subsystem. The root `Dockerfile` builds both into the one Cloud Run
+  service. See [webapp/README.md](webapp/README.md).
+- `app/app.py` is the (earlier) Streamlit shell (sidebar nav, run mode, evidence toggle, theme toggle, model
   metadata) and routes to `app/inference/<page>.py`. Pages call the subsystem's `predict`/
   `analyse` functions — the CLI and the app share one inference path, and the shipped
   predictions must be byte-identical either way (checked in each subsystem's evaluate/verify).

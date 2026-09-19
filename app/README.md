@@ -1,4 +1,8 @@
-# The app (submission item 3)
+# The Streamlit app (earlier frontend)
+
+> **Not the submitted app.** The submission is the web app in [`../webapp/`](../webapp/),
+> live at <https://gamora-cdm-307993205824.asia-southeast1.run.app/>. This Streamlit app runs the same models and still works standalone; the web
+> app reuses `reliability.py` and `samples/` from this folder, so both stay.
 
 Run from the **repository root** — the app imports the trained models from `../subsystems/`:
 

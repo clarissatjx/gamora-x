@@ -1,22 +1,32 @@
-# React frontend (prototype)
+# The app (submission item 3)
 
-A second presentation layer for the same subsystem models, in progress on `feat/react-frontend`.
-The graded submission is unaffected — `app/` (Streamlit) still runs standalone and is what was
-scored. Nothing about the models changes here; this only changes how results are displayed.
+**Live: <https://gamora-cdm-307993205824.asia-southeast1.run.app/>**
 
-All four subsystems (Door, ACV, Rail Corrugation, SHM) are wired up with a sidebar to switch
-between them. Every page carries over the honesty/reliability fixes from the Streamlit app:
-the verdict/severity/confidence panel, the "How reliable is this?" panel sourced from
-`app/reliability.py`, and malformed-file rejection (a 422 with a clear reason, never a
-confident-looking wrong answer) at the same validation layer the Streamlit app uses
-(`subsystems/*/features.py`, `subsystems/*/loader.py`). Rail additionally shows the
-held-out-vs-cross-validation score footnote and the stationary-train "Inconclusive" display
-(while the submitted CSV still says "Normal").
+The submitted app for all four subsystems (Door, ACV, Rail Corrugation, SHM): a FastAPI backend
+wrapping the `subsystems/*` predict functions and a React frontend, shipped as one container.
+It replaced the earlier Streamlit app in `app/` as the submission; the models, the submitted
+predictions and the validation layer are unchanged, and this only changes how results are
+presented.
+
+Every page gives a plain-language verdict first (what was found, how urgent — no action needed,
+monitor, or inspect before next service — how sure the model is, and why), the "How reliable is
+this?" note sourced from `app/reliability.py`, then metrics, charts and evidence, and a download
+in the exact submission schema. Malformed or wrong-subsystem files are rejected (a 422 with a
+clear reason, never a confident-looking wrong answer) at the same validation layer the models use
+(`subsystems/*/features.py`, `subsystems/*/loader.py`). Rail shows the held-out-vs-cross-
+validation footnote and displays a stationary train as "Inconclusive" (the submitted CSV still
+says "Normal").
+
+Beyond single-file scoring: batch upload per subsystem (a triage table plus one combined CSV),
+a per-subsystem run history (rename, re-view, re-download), Saved results (this browser only),
+team notes on a file (stored server-side in `backend/notes.db`), inline glossary tooltips on
+technical terms, and an "Under the hood" page with each model's method, scoring and reliability.
 
 ## Run it
 
 ```bash
 # backend — from the repo root
+pip install -r requirements.txt -r webapp/backend/requirements.txt
 uvicorn webapp.backend.main:app --reload --port 8000
 
 # frontend — in another terminal
@@ -44,15 +54,14 @@ npm run dev   # http://localhost:5173, proxies /api to :8000
 
 ## Known simplifications vs. the Streamlit app
 
-- **ACV's cabin-temperature chart** shows the top-ranked car's line against a shaded min/max
-  band of the other cars, not one line per car (the Streamlit version overlays all 8) — a
-  deliberate simplification to avoid pulling in a charting library for the prototype.
-- **No batch mode, session results zip, or dark/light toggle** — every page runs one file at a
-  time; `Download CSV` builds the file client-side per page rather than a combined submission
-  zip.
-- A couple of malformed-file error messages (notably ACV's, via pandas/openpyxl) are more raw
-  than the Streamlit app's hand-written ones — they still correctly reject the file with a 422,
-  just less politely worded.
+- **ACV's cabin-temperature chart** shows the top-ranked car against a shaded min/max band of the
+  other cars (or against one chosen car), not all 8 lines at once — plain SVG, no charting
+  library.
+- **No dark/light toggle and no session-wide `predictions.zip`** — downloads are per page (one
+  file) or per batch (one combined CSV).
+- A couple of malformed-file error messages (e.g. an `.xlsx` dropped on a CSV page) come through
+  as the raw parser message rather than a hand-written one — the file is still rejected with a
+  422, just less politely worded.
 
 ## Deploying (Cloud Run or anywhere Docker runs)
 
@@ -68,7 +77,7 @@ back to `index.html` for any other path so client-side view-switching survives a
 separate frontend host, no CORS. Verified locally end-to-end (API, static assets, SPA fallback,
 and a real browser click-through of a sample) before writing this down.
 
-Cloud Run: `gcloud run deploy gamora-cdm --source . --allow-unauthenticated --memory 1Gi` — 1Gi
+Cloud Run (the live URL above is this service, region `asia-southeast1`): `gcloud run deploy gamora-cdm --source . --allow-unauthenticated --memory 1Gi` — 1Gi
 because pandas/numpy/scikit-learn plus an xlsx parse (ACV, ~7s) need more than the 512Mi default.
 Cloud Run scales to zero by default, so `subsystems/rail_corrugation/predict.py`'s retrain-on-
 cold-start fallback (a couple of seconds) will fire on the first request after an idle period —

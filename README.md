@@ -1,8 +1,10 @@
 # gamora-x — NebulaX Hackathon PS3: Train Condition Monitoring
 
-Four condition-monitoring models for rail vehicles behind one Streamlit app, built for
+Four condition-monitoring models for rail vehicles behind one web app, built for
 [NebulaX PS3](references/PS3_Problem_Statement.md). Upload a raw sensor file, get the
 prediction on screen with the evidence behind it, download the submission CSV.
+
+**Live app: <https://gamora-cdm-307993205824.asia-southeast1.run.app/>**
 
 | Subsystem | Task | Metric | Held-out score |
 |---|---|---|---|
@@ -18,54 +20,54 @@ prediction on screen with the evidence behind it, download the submission CSV.
 |---|---|
 | 1. Demo video | `demo_video.mp4` at the repo root |
 | 2. `predictions.zip` | at the repo root — four `*_predictions.csv`, flat; rebuilt by `scripts/validate_submission.py --zip` |
-| 3. The app | [`app/`](app/) — run from the repo root, see [`app/README.md`](app/README.md); models live in [`subsystems/`](subsystems/) |
+| 3. The app | the web app in [`webapp/`](webapp/) (FastAPI + React), live at <https://gamora-cdm-307993205824.asia-southeast1.run.app/> — see [`webapp/README.md`](webapp/README.md); models live in [`subsystems/`](subsystems/) |
 | Optional: write-up | `Optional_Items/write_up.md` |
 | Optional: code and models | `Optional_Items/<Door \| ACV \| Rail Corrugation \| SHM>/{code,model}` — copies of `subsystems/`, rebuilt by `scripts/package_submission.py` |
 
 ## Run the app
 
+The submitted app is the web app in [`webapp/`](webapp/): a FastAPI backend that calls the
+`subsystems/*` predict functions directly, and a React frontend. Nothing to install to try it —
+it is deployed at **<https://gamora-cdm-307993205824.asia-southeast1.run.app/>**.
+
+Locally:
+
 ```bash
-pip install -r requirements.txt
-streamlit run app/app.py
+pip install -r requirements.txt -r webapp/backend/requirements.txt
+uvicorn webapp.backend.main:app --reload --port 8000   # backend, from the repo root
+cd webapp/frontend && npm install && npm run dev        # frontend, http://localhost:5173
 ```
 
-The app opens on an overview. Drop any raw file there — it identifies the subsystem from the
-file's contents and routes to that page — or pick a subsystem in the sidebar. Every page follows
-the same flow: upload → banner → metrics → charts and evidence → results table → download.
-No data to hand? Every page and every overview card has a **Sample** button that loads a
-bundled held-out file (`app/samples/`):
+or as the same single container that is deployed (`docker build -t gamora-cdm . && docker run -p
+8080:8080 gamora-cdm`, then <http://localhost:8080>).
+
+The app opens on **Get started**: pick a subsystem tile and upload straight from it, or open a
+subsystem from the sidebar. Every page follows the same flow: drop a file (or **Try the
+sample**) → plain-English verdict with urgency, confidence and reasoning → metrics → charts and
+evidence → **Download CSV** in the exact submission schema. Each page also has **Batch upload**
+(several files triaged into one table, one combined CSV), a per-subsystem run history (the **›**
+next to each subsystem — rename, re-view, re-download), **Saved** results, and team notes on a
+file. **Under the hood** explains each model, how it is scored and how reliable it is. Wrong or
+malformed files are rejected with a plain reason rather than a confident-looking wrong answer.
+
+The bundled samples (`app/samples/`) are held-out test files:
 
 ```
 Test.csv             Door   38 cycles, 8 flagged abnormal
 acv_test_case.xlsx   ACV    car 01 ranked most likely faulty
-Test33.csv           Rail   Side I, 100 %, 46 km/h
+Test33.csv           Rail   Side I, 46 km/h
 test02.csv           SHM    damage 0.8276
 ```
-
-Batch mode accepts several files at once and lets you choose which one the charts follow.
-Uploads persist while you navigate; `?view=rail` (or `door`, `acv`, `shm`) deep-links to a page.
-Once anything has been scored, the overview offers the session's results as one
-submission-shaped `predictions.zip`.
 
 The raw datasets are not in the repo (`data/` is gitignored); mirror the organisers'
 `02_Datasets/` layout into `data/`.
 
-## Second frontend (optional, not the graded submission)
+### The Streamlit app (earlier frontend)
 
-[`webapp/`](webapp/) is a fuller, actively-developed second presentation layer for the same four
-models — a FastAPI backend plus a React frontend, wrapping the exact `subsystems/*` predict
-functions and `app/reliability.py` text the Streamlit app uses, never re-deriving results. It adds
-batch upload, named/saved runs with team notes, per-subsystem history, and an inline glossary for
-engineers new to the dataset, and ships as one deployable container (Node build stage + FastAPI
-serving the built assets — see [`webapp/README.md`](webapp/README.md) for Cloud Run instructions).
-
-**This does not change what was scored** — `app/` (Streamlit) is the submission per the spec's
-required tree, and is what the organisers ran.
-
-```bash
-uvicorn webapp.backend.main:app --reload --port 8000   # backend, from the repo root
-cd webapp/frontend && npm install && npm run dev        # frontend, http://localhost:5173
-```
+[`app/`](app/) holds the first frontend, a Streamlit app over the same models
+(`streamlit run app/app.py`). It is kept because the web app's backend reuses
+`app/reliability.py` (the sourced reliability text) and `app/samples/`, and it still runs
+standalone, but the web app is the one submitted and shown in the demo video.
 
 ## Test
 
@@ -100,15 +102,16 @@ missing test files, ACV car IDs not matching the workbook headers).
 ## Layout
 
 ```
-app/                      Streamlit app: app.py (shell), theme.py (design system), inference/<page>.py
+webapp/                   the submitted app: backend/main.py (FastAPI), frontend/ (React + Vite);
+                          deployed to Cloud Run via the root Dockerfile
+app/                      earlier Streamlit frontend; reliability.py and samples/ are shared with webapp
 subsystems/<name>/        one independent package per subsystem: loader, features, model, train,
                           predict (CLI: --input/--output), evaluate, PLAN.md, committed model artifact
 scripts/                  validate_submission.py, package_submission.py
 references/               organisers' problem statement and the four subsystem Info Kits
 Optional_Items/           spec item 4.2: per-subsystem code and model copies, write-up (tracked, generated)
+VIDEO.md                  shot list and narration for demo_video.mp4
 predictions/              generated *_predictions.csv (gitignored); predictions.zip is at the root (tracked)
-webapp/                   optional second frontend (FastAPI + React) for the same models — not
-                          part of the graded submission; see webapp/README.md
 ```
 
 Each `subsystems/<name>/PLAN.md` records the data facts, the method, every experiment run
